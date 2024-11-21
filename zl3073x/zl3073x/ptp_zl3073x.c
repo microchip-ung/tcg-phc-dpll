@@ -116,6 +116,10 @@ static const struct of_device_id zl3073x_match[] = {
 MODULE_DEVICE_TABLE(of, zl3073x_match);
 
 enum zl3073x_mode_t {
+	ZL3073X_MODE_FREERUN        = 0x0,
+	ZL3073X_MODE_HOLDOVER       = 0x1,
+	ZL3073X_MODE_REFLOCK        = 0x2,
+	ZL3073X_MODE_AUTO_LOCK      = 0x3,
 	ZL3073X_MODE_NCO			= 0x4,
 };
 
