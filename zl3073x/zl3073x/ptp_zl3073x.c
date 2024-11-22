@@ -14,6 +14,7 @@
 #include <linux/regmap.h>
 
 #include "ptp_private.h"
+#include <linux/dpll.h>
 
 #define DPLL_MODE_REFSEL(index)			(0x284 + (index) * 0x4)
 #define DPLL_MODE_REFSEL_MODE_GET(val)		(val & GENMASK(2, 0))
@@ -115,6 +116,10 @@ static const struct of_device_id zl3073x_match[] = {
 MODULE_DEVICE_TABLE(of, zl3073x_match);
 
 enum zl3073x_mode_t {
+	ZL3073X_MODE_FREERUN        = 0x0,
+	ZL3073X_MODE_HOLDOVER       = 0x1,
+	ZL3073X_MODE_REFLOCK        = 0x2,
+	ZL3073X_MODE_AUTO_LOCK      = 0x3,
 	ZL3073X_MODE_NCO			= 0x4,
 };
 
@@ -582,6 +587,35 @@ static int _zl3073x_ptp_steptime(struct zl3073x_dpll *dpll, const s64 delta)
 		      DPLL_OUTPUT_PHASE_STEP_CTRL_SIZE);
 
 	return 0;
+}
+
+static int zl3073x_dpll_raw_mode_get(struct zl3073x *zl3073x, int dpll_index)
+{
+	u8 mode;
+	zl3073x_read(zl3073x, DPLL_MODE_REFSEL(dpll_index), &mode, sizeof(mode));
+	printk("DPLL RAW MODE: DPLL index %d, DPLL RAW mode %d\n", dpll_index, DPLL_MODE_REFSEL_MODE_GET(mode));
+    
+	return DPLL_MODE_REFSEL_MODE_GET(mode);
+}
+
+static int zl3073x_dpll_map_raw_to_manager_mode_status(int raw_mode) 
+{
+	printk("MAP_RAW_TO_MANAGER_MODE\n");
+	
+	switch (raw_mode) {
+	case ZL3073X_MODE_HOLDOVER:
+	case ZL3073X_MODE_REFLOCK:
+		printk("DPLL mode HOLDOVER/REFLOCK, print MANUAL\n");
+		return DPLL_MODE_MANUAL;
+	case ZL3073X_MODE_AUTO_LOCK:
+		printk("DPLL mode LOCK, print AUTOMATIC\n");
+		return DPLL_MODE_AUTOMATIC;
+	case ZL3073X_MODE_FREERUN:
+	case ZL3073X_MODE_NCO:
+	default:
+		printk("DPLL mode FREERUN/NCO, print INVALID\n");
+		return -EINVAL;
+	}
 }
 
 static int zl3073x_ptp_adjtime(struct ptp_clock_info *ptp, s64 delta)
