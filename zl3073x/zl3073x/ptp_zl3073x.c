@@ -141,7 +141,19 @@ static const struct of_device_id zl3073x_match[] = {
 MODULE_DEVICE_TABLE(of, zl3073x_match);
 
 enum zl3073x_mode_t {
+	ZL3073X_MODE_FREERUN        = 0x0,
+	ZL3073X_MODE_HOLDOVER       = 0x1,
+	ZL3073X_MODE_REFLOCK        = 0x2,
+	ZL3073X_MODE_AUTO_LOCK      = 0x3,
 	ZL3073X_MODE_NCO			= 0x4,
+};
+
+enum zl3073x_dpll_state_t{
+	ZLS3073X_DPLL_STATE_FREERUN		= 0x0,
+	ZLS3073X_DPLL_STATE_HOLDOVER	= 0x1,
+	ZLS3073X_DPLL_STATE_FAST_LOCK	= 0x2,
+	ZLS3073X_DPLL_STATE_ACQUIRING	= 0x3,
+	ZLS3073X_DPLL_STATE_LOCK		= 0x4,
 };
 
 enum zl3073x_tod_ctrl_cmd_t {
@@ -627,23 +639,23 @@ static int zl3073x_dpll_raw_mode_get(struct zl3073x *zl3073x, int dpll_index)
 	return DPLL_MODE_REFSEL_MODE_GET(mode);
 }
 
-static int zl3073x_dpll_map_raw_to_manager_mode_status(int raw_mode)
+static int zl3073x_dpll_map_raw_to_manager_mode_status(int raw_mode) 
 {
 	printk("MAP_RAW_TO_MANAGER_MODE\n");
-	switch (raw_mode)
-	{
-		case ZL3073X_MODE_HOLDOVER:
-		case ZL3073X_MODE_REFLOCK:
-			printk("DPLL mode HOLDOVER/REFLOCK, print MANUAL\n");
-			return DPLL_MODE_MANUAL;
-		case ZL3073X_MODE_AUTO_LOCK:
-			printk("DPLL mode LOCK, print AUTOMATIC\n");
-			return DPLL_MODE_AUTOMATIC;
-		case ZL3073X_MODE_FREERUN:
-		case ZL3073X_MODE_NCO:
-		default:
-			printk("DPLL mode FREERUN/NCO, print INVALID\n");
-			return -EINVAL;
+	
+	switch (raw_mode) {
+	case ZL3073X_MODE_HOLDOVER:
+	case ZL3073X_MODE_REFLOCK:
+		printk("DPLL mode HOLDOVER/REFLOCK, print MANUAL\n");
+		return DPLL_MODE_MANUAL;
+	case ZL3073X_MODE_AUTO_LOCK:
+		printk("DPLL mode LOCK, print AUTOMATIC\n");
+		return DPLL_MODE_AUTOMATIC;
+	case ZL3073X_MODE_FREERUN:
+	case ZL3073X_MODE_NCO:
+	default:
+		printk("DPLL mode FREERUN/NCO, print INVALID\n");
+		return -EINVAL;
 	}
 }
 
@@ -666,25 +678,24 @@ static int zl3073x_dpll_map_raw_to_manager_lock_status(struct zl3073x *zl3073x, 
     zl3073x_read(zl3073x, DPLL_MON_STATUS(dpll_index), &dpll_mon_status, sizeof(dpll_mon_status));
 	ho_ready = DPLL_MON_STATUS_HO_READY_GET(dpll_mon_status);
 	
-	switch (dpll_status) 
-	{
-		case ZLS3073X_DPLL_STATE_FREERUN:
-		case ZLS3073X_DPLL_STATE_FAST_LOCK:
-		case ZLS3073X_DPLL_STATE_ACQUIRING:
-			printk("DPLL state is FREERUN/FASTLOCK/ACQUIRING, print UNLOCKED\n");
-			return DPLL_LOCK_STATUS_UNLOCKED;
-		case ZLS3073X_DPLL_STATE_HOLDOVER:
-			printk("DPLL state is HOLDOVER print DPLL_LOCK_STATUS_HOLDOVER\n");
-			return DPLL_LOCK_STATUS_HOLDOVER;
-		case ZLS3073X_DPLL_STATE_LOCK:
-			printk("DPLL state is LOCK, print DPLL_LOCK_STATUS_LOCKED\n");
-			if (ho_ready) {
-				return DPLL_LOCK_STATUS_LOCKED_HO_ACQ;
-			} else {
-				return DPLL_LOCK_STATUS_LOCKED;
-			}
-		default:
-			return -EINVAL;
+	switch (dpll_status) {
+	case ZLS3073X_DPLL_STATE_FREERUN:
+	case ZLS3073X_DPLL_STATE_FAST_LOCK:
+	case ZLS3073X_DPLL_STATE_ACQUIRING:
+		printk("DPLL state is FREERUN/FASTLOCK/ACQUIRING, print UNLOCKED\n");
+		return DPLL_LOCK_STATUS_UNLOCKED;
+	case ZLS3073X_DPLL_STATE_HOLDOVER:
+		printk("DPLL state is HOLDOVER print DPLL_LOCK_STATUS_HOLDOVER\n");
+		return DPLL_LOCK_STATUS_HOLDOVER;
+	case ZLS3073X_DPLL_STATE_LOCK:
+		printk("DPLL state is LOCK, print DPLL_LOCK_STATUS_LOCKED\n");
+		if (ho_ready) {
+			return DPLL_LOCK_STATUS_LOCKED_HO_ACQ;
+		} else {
+			return DPLL_LOCK_STATUS_LOCKED;
+		}
+	default:
+		return -EINVAL;
 	}
 }
 
