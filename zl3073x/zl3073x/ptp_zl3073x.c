@@ -16,6 +16,8 @@
 #include "ptp_private.h"
 #include <linux/dpll.h>
 
+#define DPLL_LOCK_STATUS(index)			(0x130 + (index))
+#define DPLL_LOCK_STATUS_GET(val)		(val & GENMASK(6,4) >> 4)
 #define DPLL_MODE_REFSEL(index)			(0x284 + (index) * 0x4)
 #define DPLL_MODE_REFSEL_MODE_GET(val)		(val & GENMASK(2, 0))
 
@@ -121,6 +123,14 @@ enum zl3073x_mode_t {
 	ZL3073X_MODE_REFLOCK        = 0x2,
 	ZL3073X_MODE_AUTO_LOCK      = 0x3,
 	ZL3073X_MODE_NCO			= 0x4,
+};
+
+enum zl3073x_dpll_state_t{
+	ZLS3073X_DPLL_STATE_FREERUN		= 0x0,
+	ZLS3073X_DPLL_STATE_HOLDOVER	= 0x1,
+	ZLS3073X_DPLL_STATE_FAST_LOCK	= 0x2,
+	ZLS3073X_DPLL_STATE_ACQUIRING	= 0x3,
+	ZLS3073X_DPLL_STATE_LOCK		= 0x4,
 };
 
 enum zl3073x_tod_ctrl_cmd_t {
@@ -614,6 +624,46 @@ static int zl3073x_dpll_map_raw_to_manager_mode_status(int raw_mode)
 	case ZL3073X_MODE_NCO:
 	default:
 		printk("DPLL mode FREERUN/NCO, print INVALID\n");
+		return -EINVAL;
+	}
+}
+
+
+static int zl3073x_dpll_lock_status_get(struct zl3073x *zl3073x, int dpll_index)
+{
+	u8 dpll_status;
+	zl3073x_read(zl3073x, DPLL_LOCK_STATUS(dpll_index), &dpll_status, sizeof(dpll_status));
+	printk("DPLL RAW Lock State: DPLL index %d, DPLL RAW STATE %d\n", dpll_index, DPLL_LOCK_STATUS_GET(dpll_status));
+	
+	return DPLL_LOCK_STATUS_GET(dpll_status);
+}
+
+static int zl3073x_dpll_map_raw_to_manager_lock_status(struct zl3073x *zl3073x, int dpll_index, u8 dpll_status)
+{
+	printk("MAP_RAW_TO_MANAGER_LOCK_STATE\n");
+	u8 dpll_mon_status;
+    u8 ho_ready;
+	
+    zl3073x_read(zl3073x, DPLL_MON_STATUS(dpll_index), &dpll_mon_status, sizeof(dpll_mon_status));
+	ho_ready = DPLL_MON_STATUS_HO_READY_GET(dpll_mon_status);
+	
+	switch (dpll_status) {
+	case ZLS3073X_DPLL_STATE_FREERUN:
+	case ZLS3073X_DPLL_STATE_FAST_LOCK:
+	case ZLS3073X_DPLL_STATE_ACQUIRING:
+		printk("DPLL state is FREERUN/FASTLOCK/ACQUIRING, print UNLOCKED\n");
+		return DPLL_LOCK_STATUS_UNLOCKED;
+	case ZLS3073X_DPLL_STATE_HOLDOVER:
+		printk("DPLL state is HOLDOVER print DPLL_LOCK_STATUS_HOLDOVER\n");
+		return DPLL_LOCK_STATUS_HOLDOVER;
+	case ZLS3073X_DPLL_STATE_LOCK:
+		printk("DPLL state is LOCK, print DPLL_LOCK_STATUS_LOCKED\n");
+		if (ho_ready) {
+			return DPLL_LOCK_STATUS_LOCKED_HO_ACQ;
+		} else {
+			return DPLL_LOCK_STATUS_LOCKED;
+		}
+	default:
 		return -EINVAL;
 	}
 }
