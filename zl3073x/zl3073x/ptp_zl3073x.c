@@ -66,7 +66,15 @@
 #define DPLL_OUTPUT_PHASE_STEP_DATA_SIZE	4
 
 
-#define DPLL_GET_PRIORITY(refId)				(0x652 + (refId/2))
+
+#define DPLL_DPLL_MB_MASK			0x602
+#define DPLL_DPLL_MB_MASK_SIZE			2
+#define DPLL_DPLL_MB_SEM			0x604
+#define DPLL_DPLL_MB_SEM_SIZE			1
+#define DPLL_DPLL_MB_SEM_RD			BIT(1)
+
+
+#define DPLL_REF_PRIORITY(refId)				(0x652 + (refId/2))
 #define DPLL_REF_PRIORITY_GET_UPPER(data)		(((data) & GENMASK(7,4)) >> 4)
 #define DPLL_REF_PRIORITY_GET_LOWER(data)		((data) & GENMASK(3,0))
 #define DPLL_REF_PRIORITY_GET(data, refId)		(((refId) % 2 == 0) ? ZLS3073X_DPLL_REF_PRIORITY_GET_LOWER(data) : \
@@ -269,6 +277,14 @@ static int zl3073x_ptp_synth_mb_sem(struct zl3073x_dpll *dpll)
 	u8 sem;
 
 	zl3073x_read(zl3073x, DPLL_SYNTH_MB_SEM, &sem, sizeof(sem));
+	return sem;
+}
+
+static int zl3073x_dpll_mb_sem(struct zl3073x *zl3073x)
+{
+	u8 sem;
+
+	zl3073x_read(zl3073x, DPLL_DPLL_MB_SEM, &sem, sizeof(sem));
 	return sem;
 }
 
@@ -673,20 +689,42 @@ static int zl3073x_dpll_map_raw_to_manager_lock_status(struct zl3073x *zl3073x, 
 }
 
 
-static int zl3073x_dpll_get_priority_refp(struct zl3073x *zl3073x, u8 dpll_index)
+static int zl3073x_dpll_get_priority_ref(struct zl3073x *zl3073x, u8 dpll_index, u8 refId)
 {
-	u8 refp;
+	u8 refpriority;
 	u8 get_priority;
 
+	u8 buf[3];
+	int ret;
+	int val;
 
+	/* Select the synth */
 	mutex_lock(zl3073x->lock);
-	
+
+	memset(buf, 0, sizeof(buf));
+	buf[0] = BIT(dpll_index);
+	zl3073x_write(zl3073x, DPLL_DPLL_MB_MASK, buf, DPLL_DPLL_MB_MASK_SIZE);
+
+	/* Select read command */
+	memset(buf, 0, sizeof(buf));
+	buf[0] = DPLL_DPLL_MB_SEM_RD;
+	zl3073x_write(zl3073x, DPLL_DPLL_MB_SEM, buf, DPLL_DPLL_MB_SEM_SIZE);
+
+	/* Wait for the command to actually finish */
+	ret = readx_poll_timeout_atomic(zl3073x_dpll_mb_sem, zl3073x, val,
+					!(DPLL_DPLL_MB_SEM_RD & val),
+					READ_SLEEP_US, READ_TIMEOUT_US);
+	if (ret)
+		return ret;
+
 	printk("priority_get() \n");
-	zl3073x_read(zl3073x, DPLL_GET_PRIORITY(dpll_index), &get_priority, sizeof(get_priority));
-	refp = DPLL_GET_PRIORITY_REFP(get_priority);
-	printk("priority_get_refp() %d\n", refp);
+	zl3073x_read(zl3073x, DPLL_REF_PRIORITY(refId), &get_priority, sizeof(get_priority));
+	refpriority = DPLL_REF_PRIORITY_GET(get_priority, refId);
+	printk("priority_get_ref() %d\n", refpriority);
+
+	mutex_unlock(zl3073x->lock);
 	
-	return refp;
+	return refpriority;
 	
 }
 
@@ -730,19 +768,7 @@ static int zl3073x_dpll_set_priority_refn(struct zl3073x *zl3073x, int dpll_inde
 {
 	u8 current_priority;
 	u8 new_priority;
-	int ret;
-	int val;
-	u8 ctrl;
-
-	/* Check that the semaphore is clear */
-	ret = readx_poll_timeout_atomic(zl3073x_ptp_tod_sem, dpll,
-					val, !(DPLL_TOD_CTRL_SEM & val),
-					READ_SLEEP_US, READ_TIMEOUT_US);
-	if (ret)
-		return ret;
-
-
-
+	
 	if (refn > 0xF) {
 		printk("Invalid refn value: %d\n", refn);
 		return -EINVAL; // Invalid argument error
