@@ -65,20 +65,23 @@
 #define DPLL_OUTPUT_PHASE_STEP_DATA		0x4bc
 #define DPLL_OUTPUT_PHASE_STEP_DATA_SIZE	4
 
-
-
 #define DPLL_DPLL_MB_MASK			0x602
 #define DPLL_DPLL_MB_MASK_SIZE			2
 #define DPLL_DPLL_MB_SEM			0x604
 #define DPLL_DPLL_MB_SEM_SIZE			1
 #define DPLL_DPLL_MB_SEM_RD			BIT(1)
-
+#define DPLL_DPLL_MB_SEM_WR			BIT(0)
 
 #define DPLL_REF_PRIORITY(refId)				(0x652 + (refId/2))
 #define DPLL_REF_PRIORITY_GET_UPPER(data)		(((data) & GENMASK(7,4)) >> 4)
 #define DPLL_REF_PRIORITY_GET_LOWER(data)		((data) & GENMASK(3,0))
-#define DPLL_REF_PRIORITY_GET(data, refId)		(((refId) % 2 == 0) ? ZLS3073X_DPLL_REF_PRIORITY_GET_LOWER(data) : \
-                                                                              ZLS3073X_DPLL_REF_PRIORITY_GET_UPPER(data))
+#define DPLL_REF_PRIORITY_GET(data, refId)		(((refId) % 2 == 0) ? DPLL_REF_PRIORITY_GET_LOWER(data) : \
+                                                                      DPLL_REF_PRIORITY_GET_UPPER(data))
+
+#define DPLL_REF_PRIORITY_SET_LOWER(data, value)    (((data) & GENMASK(7, 4)) | ((value) & GENMASK(3, 0)))
+#define DPLL_REF_PRIORITY_SET_UPPER(data, value)    (((data) & GENMASK(3, 0)) | (((value) & GENMASK(3, 0)) << 4))
+#define DPLL_REF_PRIORITY_SET(data, refId, value)   (((refId) % 2 == 0) ? DPLL_REF_PRIORITY_SET_LOWER((data), (value)) : \
+                                                         DPLL_REF_PRIORITY_SET_UPPER((data), (value)))
 
 /*#define DPLL_GET_PRIORITY(index)		(0x652 + (index))
 #define DPLL_GET_PRIORITY_REFP(val)		((val & GENMASK(3,0)))
@@ -699,7 +702,6 @@ static int zl3073x_dpll_map_raw_to_manager_lock_status(struct zl3073x *zl3073x, 
 	}
 }
 
-
 static int zl3073x_dpll_get_priority_ref(struct zl3073x *zl3073x, u8 dpll_index, u8 refId)
 {
 	u8 refpriority;
@@ -709,7 +711,6 @@ static int zl3073x_dpll_get_priority_ref(struct zl3073x *zl3073x, u8 dpll_index,
 	int ret;
 	int val;
 
-	/* Select the synth */
 	mutex_lock(zl3073x->lock);
 
 	memset(buf, 0, sizeof(buf));
@@ -726,78 +727,75 @@ static int zl3073x_dpll_get_priority_ref(struct zl3073x *zl3073x, u8 dpll_index,
 					!(DPLL_DPLL_MB_SEM_RD & val),
 					READ_SLEEP_US, READ_TIMEOUT_US);
 	if (ret)
-		return ret;
+		goto out;
 
-	printk("priority_get() \n");
 	zl3073x_read(zl3073x, DPLL_REF_PRIORITY(refId), &get_priority, sizeof(get_priority));
 	refpriority = DPLL_REF_PRIORITY_GET(get_priority, refId);
-	printk("priority_get_ref() %d\n", refpriority);
+	printk("get_priority_ref() refId=%d, priority=%d\n", refId, refpriority);
 
+out:
 	mutex_unlock(zl3073x->lock);
 	
 	return refpriority;
 	
 }
 
-static int zl3073x_dpll_set_priority_refp(struct zl3073x *zl3073x, int dpll_index, u8 refp)
+
+static int zl3073x_dpll_set_priority_ref(struct zl3073x *zl3073x, u8 dpll_index, u8 refId, u8 new_priority)
 {
-	u8 current_priority;
-	u8 new_priority;
+    u8 current_priority;
+    u8 updated_priority;
+    u8 buf[3];
+    int ret;
+    int val;
 
-	if (refp > 0xF) {
-		printk("Invalid refp value: %d\n", refp);
-		return -EINVAL; // Invalid argument error
-	}
+    mutex_lock(zl3073x->lock);
 
-	printk("priority_set_refp() refp = %d\n", refp);
+    memset(buf, 0, sizeof(buf));
+    buf[0] = BIT(dpll_index);
+    zl3073x_write(zl3073x, DPLL_DPLL_MB_MASK, buf, DPLL_DPLL_MB_MASK_SIZE);
 
-	zl3073x_read(zl3073x, DPLL_GET_PRIORITY(dpll_index), &current_priority, sizeof(current_priority));
+	/* Select read command */
+	memset(buf, 0, sizeof(buf));
+	buf[0] = DPLL_DPLL_MB_SEM_RD;
+	zl3073x_write(zl3073x, DPLL_DPLL_MB_SEM, buf, DPLL_DPLL_MB_SEM_SIZE);
 
-	new_priority = DPLL_SET_PRIORITY_REFP(current_priority, new_priority);
-	
-	zl3073x_write(zl3073x, DPLL_GET_PRIORITY(dpll_index), &new_priority, sizeof(new_priority));
-	
-	printk("priority_set_refp() new_priority = 0x%02X\n", new_priority);
+	/* Wait for the command to actually finish */
+	ret = readx_poll_timeout_atomic(zl3073x_dpll_mb_sem, zl3073x, val,
+					!(DPLL_DPLL_MB_SEM_RD & val),
+					READ_SLEEP_US, READ_TIMEOUT_US);
+	if (ret)
+		goto out;
+  
+    /* Read the current priority to preserve the other nibble */
+    zl3073x_read(zl3073x, DPLL_REF_PRIORITY(refId), &current_priority, sizeof(current_priority));
 
-	return 0;
+    /* Update the priority using the macro */
+    updated_priority = DPLL_REF_PRIORITY_SET(current_priority, refId, new_priority);
+
+	/* Write the updated priority value */
+    buf[0] = updated_priority;
+    zl3073x_write(zl3073x, DPLL_REF_PRIORITY(refId), &buf[0], sizeof(buf[0]));
+   
+    /* Select write command */
+    memset(buf, 0, sizeof(buf));
+    buf[0] = DPLL_DPLL_MB_SEM_WR;
+    zl3073x_write(zl3073x, DPLL_DPLL_MB_SEM, buf, DPLL_DPLL_MB_SEM_SIZE);
+
+    /* Wait for the write command to actually finish */
+    ret = readx_poll_timeout_atomic(zl3073x_dpll_mb_sem, zl3073x, val,
+                                    !(DPLL_DPLL_MB_SEM_WR & val),
+                                    READ_SLEEP_US, READ_TIMEOUT_US);
+    if (ret)
+        goto out;
+
+    printk("set_priority_ref() success: refId=%d, priority=%d\n", refId, new_priority);
+
+out:
+    mutex_unlock(zl3073x->lock);
+
+    return 0;
 }
-
-static int zl3073x_dpll_get_priority_refn(struct zl3073x *zl3073x, int dpll_index)
-{
-	u8 refn;
-	u8 get_priority;
-	
-	printk("priority_get() \n");
-	zl3073x_read(zl3073x, DPLL_GET_PRIORITY(dpll_index), &get_priority, sizeof(get_priority));
-	refn = DPLL_GET_PRIORITY_REFN(get_priority);
-	printk("priority_get_refn() %d\n", refn);
-	
-	return refn;
-}
-
-static int zl3073x_dpll_set_priority_refn(struct zl3073x *zl3073x, int dpll_index, u8 refn)
-{
-	u8 current_priority;
-	u8 new_priority;
-	
-	if (refn > 0xF) {
-		printk("Invalid refn value: %d\n", refn);
-		return -EINVAL; // Invalid argument error
-	}
-	
-	printk("priority_set_refn() refn = %d\n", refn);
-	
-	zl3073x_read(zl3073x, DPLL_GET_PRIORITY(dpll_index), &current_priority, sizeof(current_priority));
-
-	new_priority = DPLL_SET_PRIORITY_REFP(current_priority, new_priority)
-	
-	zl3073x_write(zl3073x, DPLL_GET_PRIORITY(dpll_index), &new_priority, sizeof(new_priority));
-
-	printk("priority_set_refn() new_priority = 0x%02X\n", new_priority);
-	
-	return 0;
-}
-
 
 static int zl3073x_ptp_adjtime(struct ptp_clock_info *ptp, s64 delta)
 {
