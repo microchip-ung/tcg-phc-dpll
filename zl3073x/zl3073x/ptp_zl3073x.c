@@ -83,12 +83,6 @@
 #define DPLL_REF_PRIORITY_SET(data, refId, value)   (((refId) % 2 == 0) ? DPLL_REF_PRIORITY_SET_LOWER((data), (value)) : \
                                                          DPLL_REF_PRIORITY_SET_UPPER((data), (value)))
 
-/*#define DPLL_GET_PRIORITY(index)		(0x652 + (index))
-#define DPLL_GET_PRIORITY_REFP(val)		((val & GENMASK(3,0)))
-#define DPLL_GET_PRIORITY_REFN(val)		((val & GENMASK(7,4)) >> 4)
-#define DPLL_SET_PRIORITY_REFP(current_priority, refp)	(((current_priority) & ~GENMASK(3, 0)) | ((refp) & GENMASK(3, 0)))
-#define DPLL_SET_PRIORITY_REFN(current_priority, refn)	(((current_priority) & ~GENMASK(7, 4)) | (((refn) & GENMASK(3, 0)) << 4))*/
-
 #define DPLL_SYNTH_MB_MASK			0x682
 #define DPLL_SYNTH_MB_MASK_SIZE			2
 #define DPLL_SYNTH_MB_SEM			0x684
