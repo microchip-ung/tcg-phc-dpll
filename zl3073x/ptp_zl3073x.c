@@ -1365,7 +1365,7 @@ static int zl3073x_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int zl3073x_remove(struct platform_device *pdev)
+static void zl3073x_remove(struct platform_device *pdev)
 {
 	struct zl3073x *zl3073x = platform_get_drvdata(pdev);
 
@@ -1375,8 +1375,6 @@ static int zl3073x_remove(struct platform_device *pdev)
 
 		ptp_clock_unregister(zl3073x->dpll[i].clock);
 	}
-
-	return 0;
 }
 
 static struct platform_driver zl3073x_driver = {
