@@ -92,13 +92,21 @@
 #define DPLL_REF_PRIORITY(refId)				(0x652 + (refId/2))
 #define DPLL_REF_PRIORITY_GET_UPPER(data)		(((data) & GENMASK(7, 4)) >> 4)
 #define DPLL_REF_PRIORITY_GET_LOWER(data)		((data) & GENMASK(3, 0))
-#define DPLL_REF_PRIORITY_GET(data, refId)		(((refId) % 2 == 0) ? DPLL_REF_PRIORITY_GET_LOWER(data) : \
-													DPLL_REF_PRIORITY_GET_UPPER(data))
 
-#define DPLL_REF_PRIORITY_SET_LOWER(data, value)		(((data) & GENMASK(7, 4)) | ((value) & GENMASK(3, 0)))
-#define DPLL_REF_PRIORITY_SET_UPPER(data, value)		(((data) & GENMASK(3, 0)) | (((value) & GENMASK(3, 0)) << 4))
-#define DPLL_REF_PRIORITY_SET(data, refId, value)		(((refId) % 2 == 0) ? DPLL_REF_PRIORITY_SET_LOWER((data), (value)) : \
-															DPLL_REF_PRIORITY_SET_UPPER((data), (value)))
+#define DPLL_REF_PRIORITY_GET(data, refId) \
+    (((refId) % 2 == 0) ? DPLL_REF_PRIORITY_GET_LOWER(data) : \
+                          DPLL_REF_PRIORITY_GET_UPPER(data))
+
+#define DPLL_REF_PRIORITY_SET_LOWER(data, value) \
+    (((data) & GENMASK(7, 4)) | ((value) & GENMASK(3, 0)))
+
+#define DPLL_REF_PRIORITY_SET_UPPER(data, value) \
+    (((data) & GENMASK(3, 0)) | (((value) & GENMASK(3, 0)) << 4))
+
+#define DPLL_REF_PRIORITY_SET(data, refId, value) \
+    (((refId) % 2 == 0) ? DPLL_REF_PRIORITY_SET_LOWER((data), (value)) : \
+                          DPLL_REF_PRIORITY_SET_UPPER((data), (value)))
+
 #define DPLL_REF_PRIORITY_INVALID	0xf
 
 #define DPLL_SYNTH_MB_MASK			0x682
@@ -207,8 +215,11 @@ enum zl3073x_pin_type
 	ZL3073X_DIFFERENTIAL,
 };
 
-//#ifdef MD_990_0011
-enum dpll_type zl3073x_dpll_type[ZL3073X_MAX_DPLLS] = {DPLL_TYPE_EEC, DPLL_TYPE_PPS};
+#ifdef MD_990_0011
+enum dpll_type zl3073x_dpll_type[ZL3073X_MAX_DPLLS] = {
+	DPLL_TYPE_EEC, 
+	DPLL_TYPE_PPS
+};
 enum zl3073x_pin_type zl3073x_output_pin_type[ZL3073X_MAX_OUTPUT_PIN_PAIRS] = {
 	ZL3073X_SINGLE_ENDED, 
 	ZL3073X_SINGLE_ENDED, 
@@ -310,7 +321,7 @@ const char* output_pin_names[] = {
 	"OUT8P", "OUT8N", 
 	"OUT9P", "OUT9N",
 };
-//#endif
+#endif
 
 struct zl3073x_pin {
 	struct zl3073x		*zl3073x;
@@ -813,7 +824,8 @@ static int zl3073x_dpll_raw_lock_status_get(struct zl3073x *zl3073x, int dpll_in
 	return DPLL_LOCK_STATUS_GET(dpll_status);
 }
 
-static int zl3073x_dpll_map_raw_to_manager_lock_status(struct zl3073x *zl3073x, int dpll_index, u8 dpll_status)
+static int zl3073x_dpll_map_raw_to_manager_lock_status(struct zl3073x *zl3073x, 
+				int dpll_index, u8 dpll_status)
 {
 	u8 dpll_mon_status;
     u8 ho_ready;
@@ -839,7 +851,8 @@ static int zl3073x_dpll_map_raw_to_manager_lock_status(struct zl3073x *zl3073x, 
 	}
 }
 
-static int zl3073x_dpll_get_priority_ref(struct zl3073x *zl3073x, u8 dpll_index, u8 refId, u32 *prio)
+static int zl3073x_dpll_get_priority_ref(struct zl3073x *zl3073x, u8 dpll_index,
+				u8 refId, u32 *prio)
 {
 	u8 ref_priority;
 	u8 buf[3];
@@ -873,7 +886,8 @@ out:
 }
 
 
-static int zl3073x_dpll_set_priority_ref(struct zl3073x *zl3073x, u8 dpll_index, u8 refId, u32 new_priority)
+static int zl3073x_dpll_set_priority_ref(struct zl3073x *zl3073x, u8 dpll_index,
+				u8 refId, u32 new_priority)
 {
     u8 current_priority;
     u8 updated_priority;
@@ -1342,7 +1356,8 @@ static int zl3073x_dpll_get(struct zl3073x *zl3073x, int synth)
 	return DPLL_SYNTH_CTRL_DPLL_SEL_GET(synth_ctrl);
 }
 
-static int zl3073x_dpll_phase_offset_get(struct zl3073x *zl3073x, struct zl3073x_dpll *zl3073x_dpll, struct zl3073x_pin *zl3073x_pin, s64 *phase_offset)
+static int zl3073x_dpll_phase_offset_get(struct zl3073x *zl3073x, struct zl3073x_dpll *zl3073x_dpll, 
+				struct zl3073x_pin *zl3073x_pin, s64 *phase_offset)
 {
 	int ret;
 	int val;
@@ -1358,34 +1373,28 @@ static int zl3073x_dpll_phase_offset_get(struct zl3073x *zl3073x, struct zl3073x
 
     mutex_lock(zl3073x->lock);
 
-	//Wait for ref_phase_err_read_rqst:rd (0x020F) to be 0
 	ret = readx_poll_timeout_atomic(zl3073x_dpll_ref_phase_err_rqst_op, zl3073x,
 					val,
 					!(DPLL_REF_PHASE_ERR_RQST_MASK & val),
 					READ_SLEEP_US, READ_TIMEOUT_US);
-	if(ret)
+	if (ret)
 		goto err;
 
-	//Read mod write to set dpll_meas_ctrl::en (0x02D0) to 1 if it is not already
 	zl3073x_read(zl3073x, DPLL_MEAS_CTRL, &dpll_meas_ctrl, sizeof(dpll_meas_ctrl));
 	dpll_meas_ctrl |= 0b1;
 	zl3073x_write(zl3073x, DPLL_MEAS_CTRL, &dpll_meas_ctrl, sizeof(dpll_meas_ctrl));
 
-	//Set dpll_meas_idx::idx (0x02D1) to be the desired DPLL)
 	zl3073x_write(zl3073x, DPLL_MEAS_IDX_REG, &dpll_meas_idx, sizeof(dpll_meas_idx));
 
-	//Set ref_phase_err_read_rqst:rd to 1
 	zl3073x_write(zl3073x, DPLL_REF_PHASE_ERR_RQST, &read_rqst, sizeof(read_rqst));
 
-    //Wait for ref_phase_err_read_rqst:rd to be 0
 	ret = readx_poll_timeout_atomic(zl3073x_dpll_ref_phase_err_rqst_op, zl3073x,
 					val,
 					!(DPLL_REF_PHASE_ERR_RQST_MASK & val),
 					READ_SLEEP_US, READ_TIMEOUT_US);
-	if(ret)
+	if (ret)
 		goto err;
 
-    //Read the phase offset from ref_phase_xx (0x0220)
    	zl3073x_read(zl3073x, DPLL_REF_PHASE_ERR(ref_index), phase_err, sizeof(phase_err));
 
 	mutex_unlock(zl3073x->lock);
@@ -1441,7 +1450,7 @@ static int zl3073x_dpll_pin_direction_get(const struct dpll_pin *pin, void *pin_
     struct zl3073x_pin *zl3073x_pin = pin_priv;
 	enum dpll_pin_direction pin_direction;
 
-	if(ZL3073X_IS_INPUT_PIN(zl3073x_pin->index))
+	if (ZL3073X_IS_INPUT_PIN(zl3073x_pin->index))
 		pin_direction = DPLL_PIN_DIRECTION_INPUT;
 	else
 		pin_direction = DPLL_PIN_DIRECTION_OUTPUT;
@@ -1449,7 +1458,8 @@ static int zl3073x_dpll_pin_direction_get(const struct dpll_pin *pin, void *pin_
 	return pin_direction;
 }
 
-static int zl3073x_input_pin_state_get(struct zl3073x *zl3073x, int dpll_index, int ref_index, enum dpll_pin_state *state)
+static int zl3073x_input_pin_state_get(struct zl3073x *zl3073x, int dpll_index, 
+					int ref_index, enum dpll_pin_state *state)
 {
 	int mode;
 	int curr_ref;
@@ -1458,32 +1468,27 @@ static int zl3073x_input_pin_state_get(struct zl3073x *zl3073x, int dpll_index, 
 	mode = zl3073x_dpll_raw_mode_get(zl3073x, dpll_index);
 	curr_ref = zl3073x_dpll_curr_ref_get(zl3073x, dpll_index);
 
-	if(ref_index == curr_ref)
+	if (ref_index == curr_ref)
 	{
 		*state = DPLL_PIN_STATE_CONNECTED;
-	}
-	else if(mode == ZL3073X_MODE_AUTO_LOCK)
-	{
+	} else if (mode == ZL3073X_MODE_AUTO_LOCK) {
 		ref_priority = zl3073x_dpll_ref_priority_get(zl3073x, ref_index);
 
-		if(ref_priority == DPLL_REF_PRIORITY_INVALID)
+		if (ref_priority == DPLL_REF_PRIORITY_INVALID)
 		{
 			*state = DPLL_PIN_STATE_DISCONNECTED;
-		}
-		else
-		{
+		} else {
 			*state = DPLL_PIN_STATE_SELECTABLE;
 		}
-	}
-	else
-	{
+	} else {
 		*state = DPLL_PIN_STATE_DISCONNECTED;
 	}
 
 	return 0;
 }
 
-static int zl3073x_output_pin_state_get(struct zl3073x *zl3073x, int dpll_index, int output_index, enum dpll_pin_state *state)
+static int zl3073x_output_pin_state_get(struct zl3073x *zl3073x, int dpll_index, 
+				int output_index, enum dpll_pin_state *state)
 {
 	int synth;
 	int synth_dpll;
@@ -1493,14 +1498,12 @@ static int zl3073x_output_pin_state_get(struct zl3073x *zl3073x, int dpll_index,
 
 	synth = zl3073x_synth_get(zl3073x, output_index);
 
-	if(ZL3073X_CHECK_SYNTH_ID(synth))
+	if (ZL3073X_CHECK_SYNTH_ID(synth))
 	{
 		synth_dpll = zl3073x_dpll_get(zl3073x, synth);
 
-		if(synth_dpll == dpll_index)
-		{
+		if (synth_dpll == dpll_index)
 			*state = DPLL_PIN_STATE_CONNECTED;
-		}
 	}
 
     return 0;
@@ -1516,14 +1519,14 @@ static int zl3073x_dpll_pin_state_on_dpll_get(const struct dpll_pin *pin, void *
 	int pin_register_index;
 	int ret;
 
-	if(ZL3073X_IS_INPUT_PIN(zl3073x_pin->index))
+	if (ZL3073X_IS_INPUT_PIN(zl3073x_pin->index))
 	{
 		pin_register_index = ZL3073X_REG_MAP_INPUT_PIN_GET(zl3073x_pin->index);
-		ret = zl3073x_input_pin_state_get(zl3073x_dpll->zl3073x, zl3073x_dpll->index, pin_register_index, state);
-	}
-	else
-	{
-		ret = zl3073x_output_pin_state_get(zl3073x_dpll->zl3073x, zl3073x_dpll->index, zl3073x_pin->index, state);
+		ret = zl3073x_input_pin_state_get(zl3073x_dpll->zl3073x, zl3073x_dpll->index, 
+						pin_register_index, state);
+	} else {
+		ret = zl3073x_output_pin_state_get(zl3073x_dpll->zl3073x, zl3073x_dpll->index, 
+						zl3073x_pin->index, state);
 	}
 	
 	return ret;
@@ -1538,13 +1541,12 @@ static int zl3073x_dpll_pin_prio_get(const struct dpll_pin *pin,  void *pin_priv
 	int pin_register_index;
 	int ret;
 
-	if(ZL3073X_IS_INPUT_PIN(zl3073x_pin->index))
+	if (ZL3073X_IS_INPUT_PIN(zl3073x_pin->index))
 	{
 		pin_register_index = ZL3073X_REG_MAP_INPUT_PIN_GET(zl3073x_pin->index);
-		ret = zl3073x_dpll_get_priority_ref(zl3073x_dpll->zl3073x, zl3073x_dpll->index, pin_register_index, prio);
-	}
-	else
-	{
+		ret = zl3073x_dpll_get_priority_ref(zl3073x_dpll->zl3073x, zl3073x_dpll->index, 
+						pin_register_index, prio);
+	} else {
 		ret = -EOPNOTSUPP;
 	}
 	
@@ -1560,13 +1562,12 @@ static int zl3073x_dpll_pin_prio_set(const struct dpll_pin *pin, void *pin_priv,
 	int pin_register_index;
 	int ret;
 
-	if(ZL3073X_IS_INPUT_PIN(zl3073x_pin->index))
+	if (ZL3073X_IS_INPUT_PIN(zl3073x_pin->index))
 	{
 		pin_register_index = ZL3073X_REG_MAP_INPUT_PIN_GET(zl3073x_pin->index);
-		ret = zl3073x_dpll_set_priority_ref(zl3073x_dpll->zl3073x, zl3073x_dpll->index, pin_register_index, prio);
-	}
-	else
-	{
+		ret = zl3073x_dpll_set_priority_ref(zl3073x_dpll->zl3073x, zl3073x_dpll->index, 
+						pin_register_index, prio);
+	} else {
 		ret = -EOPNOTSUPP;
 	}
 	
@@ -1582,7 +1583,8 @@ static int zl3073x_dpll_pin_phase_offset_get(const struct dpll_pin *pin, void *p
 	struct zl3073x_pin *zl3073x_pin = pin_priv;
     int ret;
 
-    ret = zl3073x_dpll_phase_offset_get(zl3073x_dpll->zl3073x, zl3073x_dpll, zl3073x_pin, phase_offset);
+    ret = zl3073x_dpll_phase_offset_get(zl3073x_dpll->zl3073x, zl3073x_dpll, 
+					zl3073x_pin, phase_offset);
 
     return ret;
 }
@@ -1634,7 +1636,8 @@ static int zl3073x_dpll_lock_status_get(const struct dpll_device *dpll, void *dp
 	u8 raw_lock_status;
 
 	raw_lock_status = zl3073x_dpll_raw_lock_status_get(zl3073x_dpll->zl3073x, zl3073x_dpll->index);
-    *status = zl3073x_dpll_map_raw_to_manager_lock_status(zl3073x_dpll->zl3073x, zl3073x_dpll->index, raw_lock_status);
+    *status = zl3073x_dpll_map_raw_to_manager_lock_status(zl3073x_dpll->zl3073x, 
+					zl3073x_dpll->index, raw_lock_status);
 	
 	return 0;
 }
@@ -1689,7 +1692,8 @@ static struct dpll_pin_properties zl3073x_dpll_input_pin_properties_get(int pin_
      
     input_pin_prop.board_label = input_pin_names[pin_index];
     input_pin_prop.type = input_dpll_pin_types[pin_index];
-    input_pin_prop.capabilities = DPLL_PIN_CAPABILITIES_STATE_CAN_CHANGE | DPLL_PIN_CAPABILITIES_PRIORITY_CAN_CHANGE;
+    input_pin_prop.capabilities = DPLL_PIN_CAPABILITIES_STATE_CAN_CHANGE | 
+					DPLL_PIN_CAPABILITIES_PRIORITY_CAN_CHANGE;
     input_pin_prop.freq_supported_num = ARRAY_SIZE(input_freq_ranges);
     input_pin_prop.freq_supported = input_freq_ranges;
     input_pin_prop.phase_range = phase_range;
@@ -1704,13 +1708,11 @@ static struct dpll_pin_properties zl3073x_dpll_output_pin_properties_get(int pin
     output_pin_prop.board_label = output_pin_names[pin_index];
     output_pin_prop.type = output_dpll_pin_types[pin_index];
 
-	if(output_dpll_pin_types[pin_index] == DPLL_PIN_TYPE_SYNCE_ETH_PORT)
+	if (output_dpll_pin_types[pin_index] == DPLL_PIN_TYPE_SYNCE_ETH_PORT)
 	{
 		output_pin_prop.freq_supported_num = ARRAY_SIZE(synce_output_freq_ranges);
     	output_pin_prop.freq_supported = synce_output_freq_ranges;
-	}
-	else
-	{
+	} else {
 		output_pin_prop.freq_supported_num = ARRAY_SIZE(ptp_output_freq_ranges);
     	output_pin_prop.freq_supported = ptp_output_freq_ranges;
 	}
@@ -1720,18 +1722,17 @@ static struct dpll_pin_properties zl3073x_dpll_output_pin_properties_get(int pin
     return output_pin_prop;
 }
 
-static int zl3073x_dpll_register(struct zl3073x_dpll *zl3073x_dpll, enum dpll_type dpll_type, int dpll_index)
+static int zl3073x_dpll_register(struct zl3073x_dpll *zl3073x_dpll, 
+				enum dpll_type dpll_type, int dpll_index)
 {
 	int ret = 0;
 	u64 clock_id = zl3073x_dpll_chip_id_get(zl3073x_dpll->zl3073x);
 	struct dpll_device *dpll_device = dpll_device_get(clock_id, dpll_index, THIS_MODULE);
 	
-	if(IS_ERR((dpll_device)))
+	if (IS_ERR((dpll_device)))
 	{
 		ret = PTR_ERR(dpll_device);
-	}
-	else
-	{
+	} else {
 		zl3073x_dpll->index = dpll_index;
 		zl3073x_dpll->dpll_device = dpll_device;
 
@@ -1747,27 +1748,26 @@ static void zl3073x_dpll_unregister(struct zl3073x_dpll *zl3073x_dpll)
     dpll_device_put(zl3073x_dpll->dpll_device);
 }
 
-static int zl3073x_pin_register(struct zl3073x_dpll *zl3073x_dpll, struct zl3073x_pin *zl3073x_pin, int pin_index)
+static int zl3073x_pin_register(struct zl3073x_dpll *zl3073x_dpll, 
+				struct zl3073x_pin *zl3073x_pin, int pin_index)
 {
     int ret = 0;
 	u64 clock_id = zl3073x_dpll_chip_id_get(zl3073x_dpll->zl3073x);
 	struct dpll_pin_properties pin_properties;
 	enum zl3073x_pin_type pin_type;
 	
-	if(ZL3073X_IS_INPUT_PIN(pin_index))
+	if (ZL3073X_IS_INPUT_PIN(pin_index))
 	{
 		pin_properties = zl3073x_dpll_input_pin_properties_get(pin_index);
 		pin_type = zl3073x_output_pin_type[pin_index];
-	}
-	else
-	{
+	} else {
 		pin_properties = zl3073x_dpll_output_pin_properties_get(pin_index);
 		pin_type = ZL3073X_SINGLE_ENDED;
 	}
 
 	struct dpll_pin *dpll_pin = dpll_pin_get(clock_id, pin_index, THIS_MODULE, &pin_properties);
 	
-	if(IS_ERR((dpll_pin)))
+	if (IS_ERR((dpll_pin)))
 	{
 		ret = PTR_ERR(dpll_pin);
 	}
@@ -1777,15 +1777,18 @@ static int zl3073x_pin_register(struct zl3073x_dpll *zl3073x_dpll, struct zl3073
 		zl3073x_pin->dpll_pin = dpll_pin;
 		zl3073x_pin->pin_type = pin_type;
 
-		ret = dpll_pin_register(zl3073x_dpll->dpll_device, dpll_pin, &zl3073x_dpll_pin_ops, zl3073x_pin);
+		ret = dpll_pin_register(zl3073x_dpll->dpll_device, dpll_pin,
+						&zl3073x_dpll_pin_ops, zl3073x_pin);
 	}
     
 	return ret;
 }
  
-static void zl3073x_pin_unregister(struct zl3073x_dpll *zl3073x_dpll, struct zl3073x_pin *zl3073x_pin)
+static void zl3073x_pin_unregister(struct zl3073x_dpll *zl3073x_dpll, 
+				struct zl3073x_pin *zl3073x_pin)
 {
-    dpll_pin_unregister(zl3073x_dpll->dpll_device, zl3073x_pin->dpll_pin, &zl3073x_dpll_pin_ops, zl3073x_pin);
+    dpll_pin_unregister(zl3073x_dpll->dpll_device, zl3073x_pin->dpll_pin, 
+					&zl3073x_dpll_pin_ops, zl3073x_pin);
     dpll_pin_put(zl3073x_pin->dpll_pin);
 }
 
@@ -1795,7 +1798,7 @@ static int zl3073x_register_all_dplls(struct zl3073x *zl3073x)
 	struct zl3073x_dpll *zl3073x_dpll;
 	enum dpll_type dpll_type;
 
-    for(int i=0; i<ZL3073X_MAX_DPLLS; i++)
+    for (int i=0; i<ZL3073X_MAX_DPLLS; i++)
     {
 		zl3073x_dpll = &zl3073x->dpll[i];
 		dpll_type = zl3073x_dpll_type[i];
@@ -1809,7 +1812,7 @@ static void zl3073x_unregister_all_dplls(struct zl3073x *zl3073x)
 {
 	struct zl3073x_dpll *zl3073x_dpll;
 
-    for(int i=0; i<ZL3073X_MAX_DPLLS; i++)
+    for (int i=0; i<ZL3073X_MAX_DPLLS; i++)
     {
 		zl3073x_dpll = &zl3073x->dpll[i];
         zl3073x_dpll_unregister(zl3073x_dpll);
@@ -1824,14 +1827,13 @@ static int zl3073x_register_all_pins(struct zl3073x *zl3073x)
 	struct zl3073x_pin *zl3073x_pin;
 
 
-	//Register all pins
-	for(int i=0; i<ZL3073X_MAX_PINS; i++)
+	for (int i=0; i<ZL3073X_MAX_PINS; i++)
     {
 		zl3073x_pin = &zl3073x->pin[i];
 		pin_index = i;
 
-        // Register each pin on each dpll
-        for(int j=0; j<ZL3073X_MAX_DPLLS; j++)
+        /* Register each pin on each dpll */
+        for (int j=0; j<ZL3073X_MAX_DPLLS; j++)
         {
 			zl3073x_dpll = &zl3073x->dpll[j];
             ret = zl3073x_pin_register(zl3073x_dpll, zl3073x_pin, pin_index);
@@ -1846,13 +1848,12 @@ static void zl3073x_unregister_all_pins(struct zl3073x *zl3073x)
 	struct zl3073x_dpll *zl3073x_dpll;
 	struct zl3073x_pin *zl3073x_pin;
 
-    //unregister all pins
-    for(int i=0; i<ZL3073X_MAX_PINS; i++)
+    for (int i=0; i<ZL3073X_MAX_PINS; i++)
     {
 		zl3073x_pin = &zl3073x->pin[i];
 
-        // unregister each pin on each dpll
-        for(int j=0; j<ZL3073X_MAX_DPLLS; j++)
+        /* unregister each pin on each dpll */
+        for (int j=0; j<ZL3073X_MAX_DPLLS; j++)
         {
 			zl3073x_dpll = &zl3073x->dpll[j];
             zl3073x_pin_unregister(zl3073x_dpll, zl3073x_pin);
@@ -1866,12 +1867,12 @@ static int zl3073x_dpll_init(struct zl3073x *zl3073x)
     
     ret = zl3073x_register_all_dplls(zl3073x);
     
-    if(ret != 0)
+    if (ret != 0)
         goto err;
     
     ret = zl3073x_register_all_pins(zl3073x);
     
-    if(ret != 0)
+    if (ret != 0)
         goto err;
     
     return 0;
@@ -2078,7 +2079,7 @@ static int zl3073x_probe(struct platform_device *pdev)
 
 #ifdef ZL3073X_DPLL_NETLINK_ENABLED
 	err = zl3073x_dpll_init(zl3073x);
-	if(err)
+	if (err)
 		return err;
 #endif
 
