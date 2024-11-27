@@ -1399,7 +1399,7 @@ static int zl3073x_dpll_phase_offset_get(struct zl3073x *zl3073x, struct zl3073x
 
 	mutex_unlock(zl3073x->lock);
 
-	phase_offset_reg_units= 0;
+	phase_offset_reg_units = 0;
 	phase_offset_reg_units |= ((s64)phase_err[0] << 0);
 	phase_offset_reg_units |= ((s64)phase_err[1] << 8);
 	phase_offset_reg_units |= ((s64)phase_err[2] << 16);
@@ -1407,11 +1407,8 @@ static int zl3073x_dpll_phase_offset_get(struct zl3073x *zl3073x, struct zl3073x
 	phase_offset_reg_units |= ((s64)phase_err[4] << 32);
 	phase_offset_reg_units |= ((s64)phase_err[5] << 40);
 
-	/* Since the interface does not support negative phase offset it
-	 * will need to be mapped from signed to unsigned. The register 
-	 * units are 0.01 ps, and the offset is returned in units of fs.
-	 */
-	*phase_offset = phase_offset_reg_units * 10;
+	/* The register units are 0.01 ps, and the offset is returned in units of ps. */
+	*phase_offset = div_s64(phase_offset_reg_units, 100);
 
 	return 0;
 
@@ -1697,7 +1694,7 @@ static struct dpll_pin_properties zl3073x_dpll_input_pin_properties_get(int pin_
     input_pin_prop.freq_supported_num = ARRAY_SIZE(input_freq_ranges);
     input_pin_prop.freq_supported = input_freq_ranges;
     input_pin_prop.phase_range = phase_range;
- 
+	
     return input_pin_prop;
 }
  
@@ -1755,14 +1752,16 @@ static int zl3073x_pin_register(struct zl3073x_dpll *zl3073x_dpll,
 	u64 clock_id = zl3073x_dpll_chip_id_get(zl3073x_dpll->zl3073x);
 	struct dpll_pin_properties pin_properties;
 	enum zl3073x_pin_type pin_type;
+	int pin_register_index;
 	
 	if (ZL3073X_IS_INPUT_PIN(pin_index))
 	{
-		pin_properties = zl3073x_dpll_input_pin_properties_get(pin_index);
-		pin_type = zl3073x_output_pin_type[pin_index];
+		pin_register_index = ZL3073X_REG_MAP_INPUT_PIN_GET(pin_index);
+		pin_properties = zl3073x_dpll_input_pin_properties_get(pin_register_index);
+		pin_type = ZL3073X_SINGLE_ENDED;
 	} else {
 		pin_properties = zl3073x_dpll_output_pin_properties_get(pin_index);
-		pin_type = ZL3073X_SINGLE_ENDED;
+		pin_type = zl3073x_output_pin_type[pin_index / 2];
 	}
 
 	struct dpll_pin *dpll_pin = dpll_pin_get(clock_id, pin_index, THIS_MODULE, &pin_properties);
@@ -1800,9 +1799,10 @@ static int zl3073x_register_all_dplls(struct zl3073x *zl3073x)
 
     for (int i=0; i<ZL3073X_MAX_DPLLS; i++)
     {
-		zl3073x_dpll = &zl3073x->dpll[i];
 		dpll_type = zl3073x_dpll_type[i];
-        ret = zl3073x_dpll_register(zl3073x_dpll, dpll_type, i);
+		zl3073x_dpll = &zl3073x->dpll[i];
+		zl3073x_dpll->zl3073x = zl3073x;
+		ret = zl3073x_dpll_register(zl3073x_dpll, dpll_type, i); 
     }
 
 	return ret;
