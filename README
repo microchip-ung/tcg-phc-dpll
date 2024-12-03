@@ -12,6 +12,8 @@ userspace application to control it.
 Depending on your board designed it is required to have the microchip-dpll-i2c
 or the microchip-dpll-spi driver.
 
+Note that the zl3073x naming used in the code covers all Azurite-based family of products including ZL80132B.
+
 How to build
 -------------------------------------
 
@@ -25,10 +27,3 @@ The clean command is:
 
 make clean
 
-To install the module:
-
-insmod *.ko
-
-To remove the module
-
-rmmod lan884x
