@@ -2,8 +2,7 @@
 
 This document provides a detailed description of the ZL3073X driver code. The ZL3073X is a clock device driver that interfaces with the Linux kernel to provide functionalities such as reading and writing to device registers, handling PTP (Precision Time Protocol) operations, and managing DPLL (Digital Phase-Locked Loop) configurations.
 
-To enable Azurite Dpll Netlink, turn on CONFIG_DPLL
-To enable Azurite PHC, turn on CONFIG_PTP_1588_CLOCK_ZL3073X
+To enable Azurite Dpll Netlink, turn on CONFIG_DPLL. To enable Azurite PHC, turn on CONFIG_PTP_1588_CLOCK_ZL3073X.
  
 
 # Table of Contents
@@ -142,11 +141,14 @@ static int zl3073x_dpll_raw_mode_get(struct zl3073x *zl3073x, int dpll_index);
 static int zl3073x_dpll_raw_lock_status_get(struct zl3073x *zl3073x, int dpll_index);
 static int zl3073x_dpll_map_raw_to_manager_mode(int raw_mode);
 static int zl3073x_dpll_map_raw_to_manager_lock_status(struct zl3073x *zl3073x, int dpll_index, u8 dpll_status);
+static int zl3073x_dpll_ffo_get(struct zl3073x *zl3073x, u8 dpll_index, u8 ref_index, s64 *ffo);
+
 ```
 - Retrieves the raw mode of a specified DPLL.
 - Retrieves the raw lock status of a specified DPLL.
 - Maps a raw DPLL mode to a manager mode.
 - Maps a raw DPLL lock status to a manager lock status.
+- Retrieve the current Frequency Offset (FFO) value from the specified DPLL.
 
 ## DPLL Phase Offset
 

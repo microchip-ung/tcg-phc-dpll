@@ -27,8 +27,19 @@
 #define DPLL_LOCK_REFSEL_LOCK_GET(val)		((val & GENMASK(6, 4)) >> 4)
 #define DPLL_LOCK_REFSEL_REF_GET(val)		((val & GENMASK(3, 0)))
 
+#define DPLL_REF_FREQ_ERR(ref)			(0x144 + (ref) * 0x4)
+
 #define DPLL_REF_PHASE_ERR_RQST			(0x20f)
 #define DPLL_REF_PHASE_ERR_RQST_MASK	GENMASK(0, 0)
+
+#define REF_FREQ_MEAS_CTRL				0x21C
+#define REF_FREQ_MEAS_CTRL_MASK			GENMASK(1, 0)
+
+#define REF_FREQ_MEAS_MASK_3_0			0x21D
+#define REF_FREQ_MEAS_MASK_4			0x21E
+
+#define DPLL_MEAS_REF_FREQ_CTRL			0x21F
+#define DPLL_MEAS_REF_FREQ_MASK_SHIFT	4
 
 #define DPLL_REF_PHASE_ERR(ref)			(0x220 + (ref) * 0x6)
 
@@ -1496,6 +1507,14 @@ static int zl3073x_dpll_ref_phase_err_rqst_op(struct zl3073x *zl3073x)
 	return read_rqst;
 }
 
+static int zl3073x_dpll_ref_freq_meas_op(struct zl3073x *zl3073x)
+{
+	u8 ref_freq_meas_ctrl;
+
+	zl3073x_read(zl3073x, REF_FREQ_MEAS_CTRL, &ref_freq_meas_ctrl, sizeof(ref_freq_meas_ctrl));
+	return ref_freq_meas_ctrl;
+}
+
 static int zl3073x_dpll_forced_ref_get(struct zl3073x *zl3073x, int dpll_index)
 {
 	u8 ref;
@@ -1828,11 +1847,97 @@ static int zl3073x_dpll_pin_phase_adjust_set(const struct dpll_pin *pin, void *p
 	return ret;
 }
 
+static int zl3073x_dpll_ffo_get(struct zl3073x *zl3073x, u8 dpll_index, u8 ref_index, s64 *ffo)
+{
+	u8 dpll_select_mask = (dpll_index) << DPLL_MEAS_REF_FREQ_MASK_SHIFT;
+	u8 freq_meas_request = 0b11;
+	u8 dpll_meas_ref_freq_ctrl;
+	u8 freq_meas_enable = 0b1;
+	s64 freq_offset_reg;
+	u8 ref_select_mask;
+	u8 freq_err[4];
+	int ret;
+	int val;
+
+	mutex_lock(zl3073x->lock);
+
+	ret = readx_poll_timeout_atomic(zl3073x_dpll_ref_freq_meas_op, zl3073x,
+					val,
+					!(REF_FREQ_MEAS_CTRL_MASK & val),
+					READ_SLEEP_US, READ_TIMEOUT_US);
+	if (ret)
+		goto err;
+
+	/* Set the dpll mask and enable freq measurement */
+	dpll_meas_ref_freq_ctrl = 0;
+	dpll_meas_ref_freq_ctrl |= dpll_select_mask;
+	dpll_meas_ref_freq_ctrl |= freq_meas_enable;
+	zl3073x_write(zl3073x, DPLL_MEAS_REF_FREQ_CTRL, &dpll_meas_ref_freq_ctrl,
+					sizeof(dpll_meas_ref_freq_ctrl));
+
+	/* Set the reference mask */
+	if (ref_index < 8) {
+		ref_select_mask = BIT(ref_index);
+		zl3073x_write(zl3073x, REF_FREQ_MEAS_MASK_3_0, &ref_select_mask, sizeof(ref_select_mask));
+	} else {
+		ref_select_mask = BIT(ref_index - 8);
+		zl3073x_write(zl3073x, REF_FREQ_MEAS_MASK_4, &ref_select_mask, sizeof(ref_select_mask));
+	}
+
+	/* Request a read of the freq offset between the dpll and the reference */
+	zl3073x_write(zl3073x, REF_FREQ_MEAS_CTRL, &freq_meas_request, sizeof(freq_meas_request));
+
+	ret = readx_poll_timeout_atomic(zl3073x_dpll_ref_freq_meas_op, zl3073x,
+					val,
+					!(REF_FREQ_MEAS_CTRL_MASK & val),
+					READ_SLEEP_US, READ_TIMEOUT_US);
+	if (ret)
+		goto err;
+
+	zl3073x_read(zl3073x, DPLL_REF_FREQ_ERR(ref_index), freq_err, sizeof(freq_err));
+
+	mutex_unlock(zl3073x->lock);
+
+	/* register units for FFO are 2^-32 signed */
+	freq_offset_reg = 0;
+	freq_offset_reg |= ((s64)freq_err[3] << 0);
+	freq_offset_reg |= ((s64)freq_err[2] << 8);
+	freq_offset_reg |= ((s64)freq_err[1] << 16);
+	freq_offset_reg |= ((s64)freq_err[0] << 24);
+
+
+	/* Perform sign extension for a 32-bit signed value */
+	if (freq_err[0] & 0x80)
+		freq_offset_reg |= 0xFFFFFFFF00000000LL;
+
+	*ffo = (s64)freq_offset_reg;
+
+	return ret;
+
+err:
+	mutex_unlock(zl3073x->lock);
+	*ffo = 0;
+
+	return ret;
+}
+
 static int zl3073x_dpll_pin_ffo_get(const struct dpll_pin *pin, void *pin_priv,
 		       const struct dpll_device *dpll, void *dpll_priv,
 		       s64 *ffo, struct netlink_ext_ack *extack)
 {
-	return -EOPNOTSUPP;
+	struct zl3073x_dpll *zl3073x_dpll = dpll_priv;
+	struct zl3073x_pin *zl3073x_pin = pin_priv;
+	int pin_register_index;
+	int ret;
+
+	if (ZL3073X_IS_INPUT_PIN(zl3073x_pin->index)) {
+		pin_register_index = ZL3073X_REG_MAP_INPUT_PIN_GET(zl3073x_pin->index);
+		ret = zl3073x_dpll_ffo_get(zl3073x_dpll->zl3073x, zl3073x_dpll->index, pin_register_index, ffo);
+	} else {
+		ret = -EOPNOTSUPP;
+	}
+
+	return ret;
 }
 
 static int zl3073x_dpll_pin_esync_set(const struct dpll_pin *pin, void *pin_priv,
@@ -1877,21 +1982,9 @@ static int zl3073x_dpll_mode_get(const struct dpll_device *dpll, void *dpll_priv
 	return 0;
 }
 
-
-static int zl3073x_dpll_pin_state_on_pin_get(const struct dpll_pin *pin, void *pin_priv,
-				const struct dpll_pin *parent_pin,
-				void *parent_pin_priv,
-				enum dpll_pin_state *state,
-				struct netlink_ext_ack *extack)
-{
-	/* Without this function the user application couldn't do a pin dump */
-	return DPLL_PIN_STATE_DISCONNECTED;
-}
-
 static const struct dpll_pin_ops zl3073x_dpll_pin_ops = {
 	.direction_get      = zl3073x_dpll_pin_direction_get,
 	.state_on_dpll_get  = zl3073x_dpll_pin_state_on_dpll_get,
-	.state_on_pin_get  = zl3073x_dpll_pin_state_on_pin_get,
 	.frequency_get      = zl3073x_dpll_pin_frequency_get,
 	.frequency_set      = zl3073x_dpll_pin_frequency_set,
 	.direction_get      = zl3073x_dpll_pin_direction_get,
@@ -2076,6 +2169,16 @@ err:
 	return ret;
 }
 
+static void zl3073x_unregister_all_dplls(struct zl3073x *zl3073x)
+{
+	struct zl3073x_dpll *zl3073x_dpll;
+
+	for (int i = 0; i < ZL3073X_MAX_DPLLS; i++) {
+		zl3073x_dpll = &zl3073x->dpll[i];
+		zl3073x_dpll_unregister(zl3073x_dpll);
+	}
+}
+
 static int zl3073x_register_all_pins(struct zl3073x *zl3073x)
 {
 	struct zl3073x_dpll *zl3073x_dpll;
@@ -2107,6 +2210,16 @@ err:
 		i--;
 	}
 	return ret;
+}
+
+static void zl3073x_unregister_all_pins(struct zl3073x *zl3073x)
+{
+	struct zl3073x_pin *zl3073x_pin;
+
+	for (int i = 0; i < ZL3073X_MAX_PINS; i++) {
+		zl3073x_pin = &zl3073x->pin[i];
+		zl3073x_pin_unregister(zl3073x, zl3073x_pin);
+	}
 }
 
 static int zl3073x_dpll_init(struct zl3073x *zl3073x)
@@ -2285,14 +2398,6 @@ out:
 	return err;
 }
 
-static bool zl3073x_dpll_nco_mode(struct zl3073x *zl3073x, int dpll_index)
-{
-	u8 mode;
-
-	zl3073x_read(zl3073x, DPLL_MODE_REFSEL(dpll_index), &mode, sizeof(mode));
-	return DPLL_MODE_REFSEL_MODE_GET(mode) == ZL3073X_MODE_NCO;
-}
-
 static int zl3073x_probe(struct platform_device *pdev)
 {
 	struct microchip_dpll_ddata *ddata = dev_get_drvdata(pdev->dev.parent);
@@ -2334,12 +2439,15 @@ static void zl3073x_remove(struct platform_device *pdev)
 {
 	struct zl3073x *zl3073x = platform_get_drvdata(pdev);
 
-	for (int i = 0; i < ZL3073X_MAX_DPLLS; ++i) {
-		if (!zl3073x_dpll_nco_mode(zl3073x, i))
-			continue;
+#if IS_ENABLED(CONFIG_PTP_1588_CLOCK_ZL3073X)
+	ptp_clock_unregister(zl3073x->dpll[ZL3073X_PTP_CLOCK_DPLL].clock);
+#endif
 
-		ptp_clock_unregister(zl3073x->dpll[i].clock);
-	}
+#if IS_ENABLED(CONFIG_DPLL)
+	/* Unregister all pins and dpll */
+	zl3073x_unregister_all_pins(zl3073x);
+	zl3073x_unregister_all_dplls(zl3073x);
+#endif
 }
 
 static struct platform_driver zl3073x_driver = {
