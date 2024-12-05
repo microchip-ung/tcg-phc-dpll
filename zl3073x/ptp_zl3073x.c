@@ -162,6 +162,8 @@
 #define DPLL_OUTPUT_DIV_SIZE			4
 #define DPLL_OUTPUT_WIDTH			0x710
 #define DPLL_OUTPUT_WIDTH_SIZE			4
+#define DPLL_OUTPUT_PHASE_COMPENSATION_REG			0x720
+#define DPLL_OUTPUT_PHASE_COMPENSATION_REG_SIZE			4
 #define DPLL_OUTPUT_GPO_EN			0x724
 #define DPLL_OUTPUT_GPO_EN_SIZE			1
 
@@ -538,6 +540,15 @@ static int zl3073x_ptp_output_mb_sem(struct zl3073x_dpll *dpll)
 
 	zl3073x_read(zl3073x, DPLL_OUTPUT_MB_SEM, &sem, sizeof(sem));
 	return sem;
+}
+
+static int zl3073x_synth_get(struct zl3073x *zl3073x, int output_index)
+{
+	u8 output_ctrl;
+	zl3073x_read(zl3073x, DPLL_OUTPUT_CTRL(output_index), &output_ctrl,
+		     DPLL_OUTPUT_CTRL_SIZE);
+
+	return DPLL_OUTPUT_CTRL_SYNTH_SEL_GET(output_ctrl);
 }
 
 static int _zl3073x_ptp_gettime64(struct zl3073x_dpll *dpll,
@@ -1120,6 +1131,116 @@ out:
 	return ret;
 }
 
+static int zl3073x_dpll_get_output_phase_adjust(struct zl3073x *zl3073x, u8 outputIndex, s32 *phaseAdj)
+{
+	u8 buf[DPLL_OUTPUT_PHASE_COMPENSATION_REG_SIZE];
+	const u64 scaleSecToPicoSec = 1000000000000;
+	s32 currentPhaseOffsetComp = 0;
+	int halfSynthCycle;
+	u8 synth;
+	u32 freq;
+	int ret;
+	int val;
+
+	synth = zl3073x_synth_get(zl3073x, outputIndex);
+	freq = _zl3073x_ptp_get_synth_freq(zl3073x->dpll, synth);
+	halfSynthCycle = div_u64(scaleSecToPicoSec, (freq*2));
+
+	mutex_lock(zl3073x->lock);
+
+	memset(buf, 0, sizeof(buf));
+	buf[0] = BIT(outputIndex/2);
+	zl3073x_write(zl3073x, DPLL_OUTPUT_MB_MASK, buf, DPLL_OUTPUT_MB_MASK_SIZE);
+
+	/* Select read command */
+	memset(buf, 0, sizeof(buf));
+	buf[0] = DPLL_OUTPUT_MB_SEM_RD;
+	zl3073x_write(zl3073x, DPLL_OUTPUT_MB_SEM, buf, DPLL_OUTPUT_MB_SEM_SIZE);
+
+	/* Wait for the command to actually finish */
+	ret = readx_poll_timeout_atomic(zl3073x_dpll_mb_sem, zl3073x, val,
+					!(DPLL_OUTPUT_MB_SEM_RD & val),
+					READ_SLEEP_US, READ_TIMEOUT_US);
+	if (ret)
+		goto out;
+
+	memset(buf, 0, sizeof(buf));
+	zl3073x_read(zl3073x, DPLL_OUTPUT_PHASE_COMPENSATION_REG, buf, DPLL_OUTPUT_PHASE_COMPENSATION_REG_SIZE);
+
+	/* Combine the 4 bytes into a 32-bit signed integer */
+	currentPhaseOffsetComp = (buf[0] << 24) |
+								(buf[1] << 16) |
+								(buf[2] << 8) |
+								(buf[3] << 0);
+
+	if (currentPhaseOffsetComp != 0) {
+		currentPhaseOffsetComp = (currentPhaseOffsetComp * halfSynthCycle);
+		*phaseAdj = ~currentPhaseOffsetComp + 1; /* Reverse the two's complement negation applied during 'set' */
+	}
+
+out:
+	mutex_unlock(zl3073x->lock);
+	return ret;
+}
+
+static int zl3073x_dpll_set_output_phase_adjust(struct zl3073x *zl3073x, u8 outputIndex, s32 phaseOffsetComp32)
+{
+	u8 buf[DPLL_OUTPUT_PHASE_COMPENSATION_REG_SIZE];
+	const u64 scaleSecToPicoSec = 1000000000000;
+	int halfSynthCycle;
+	u8 synth;
+	u32 freq;
+	int ret;
+	int val;
+
+	synth = zl3073x_synth_get(zl3073x, outputIndex);
+	freq = _zl3073x_ptp_get_synth_freq(zl3073x->dpll, synth);
+	halfSynthCycle = div_u64(scaleSecToPicoSec, (freq*2));
+
+	if ((halfSynthCycle % phaseOffsetComp32) != 0) {
+		/* Not a multiple of halfSynthCycle, return an error */
+		ret = -ERANGE;
+		goto out;
+	}
+
+	mutex_lock(zl3073x->lock);
+
+	memset(buf, 0, sizeof(buf));
+	buf[0] = BIT(outputIndex/2);
+	zl3073x_write(zl3073x, DPLL_OUTPUT_MB_MASK, buf, DPLL_OUTPUT_MB_MASK_SIZE);
+
+	memset(buf, 0, sizeof(buf));
+
+	phaseOffsetComp32 = phaseOffsetComp32 / halfSynthCycle;
+	/* 2's compliment */
+	phaseOffsetComp32 = ~phaseOffsetComp32 + 1;
+
+	/* Split the 32-bit value into 4 bytes */
+	buf[3] = (u8)(phaseOffsetComp32 >> 24);
+	buf[2] = (u8)(phaseOffsetComp32 >> 16);
+	buf[1] = (u8)(phaseOffsetComp32 >> 8);
+	buf[0] = (u8)(phaseOffsetComp32 >> 0);
+
+	/* Write the 48-bit value to the compensation register */
+	zl3073x_write(zl3073x, DPLL_OUTPUT_PHASE_COMPENSATION_REG, buf, DPLL_OUTPUT_PHASE_COMPENSATION_REG_SIZE);
+
+	/* Select write command */
+	memset(buf, 0, sizeof(buf));
+	buf[0] = DPLL_REF_MB_SEM_WR;
+	zl3073x_write(zl3073x, DPLL_OUTPUT_MB_SEM, buf, DPLL_OUTPUT_MB_SEM_SIZE);
+
+	/* Wait for the command to actually finish */
+	ret = readx_poll_timeout_atomic(zl3073x_dpll_mb_sem, zl3073x, val,
+					!(DPLL_OUTPUT_MB_SEM_WR & val),
+					READ_SLEEP_US, READ_TIMEOUT_US);
+	if (ret)
+		goto out;
+
+out:
+	mutex_unlock(zl3073x->lock);
+	return 0;
+}
+
 static int zl3073x_ptp_adjtime(struct ptp_clock_info *ptp, s64 delta)
 {
 	struct zl3073x_dpll *dpll = container_of(ptp, struct zl3073x_dpll, info);
@@ -1539,15 +1660,6 @@ static int zl3073x_dpll_ref_status_get(struct zl3073x *zl3073x, int ref_index)
 	return ref_status;
 }
 
-static int zl3073x_synth_get(struct zl3073x *zl3073x, int output_index)
-{
-	u8 output_ctrl;
-
-	zl3073x_read(zl3073x, DPLL_OUTPUT_CTRL(output_index), &output_ctrl,
-		     DPLL_OUTPUT_CTRL_SIZE);
-	return DPLL_OUTPUT_CTRL_SYNTH_SEL_GET(output_ctrl);
-}
-
 static int zl3073x_dpll_get(struct zl3073x *zl3073x, int synth)
 {
 	u8 synth_ctrl;
@@ -1821,7 +1933,7 @@ static int zl3073x_dpll_pin_phase_adjust_get(const struct dpll_pin *pin, void *p
 		pin_register_index = ZL3073X_REG_MAP_INPUT_PIN_GET(zl3073x_pin->index);
 		ret = zl3073x_dpll_get_input_phase_adjust(zl3073x_dpll->zl3073x, pin_register_index, phase_adjust);
 	} else {
-		ret = -EOPNOTSUPP;
+		ret = zl3073x_dpll_get_output_phase_adjust(zl3073x_dpll->zl3073x, zl3073x_pin->index, phase_adjust);
 	}
 
 	return ret;
@@ -1841,7 +1953,7 @@ static int zl3073x_dpll_pin_phase_adjust_set(const struct dpll_pin *pin, void *p
 		pin_register_index = ZL3073X_REG_MAP_INPUT_PIN_GET(zl3073x_pin->index);
 		ret = zl3073x_dpll_set_input_phase_adjust(zl3073x_dpll->zl3073x, pin_register_index, phase_adjust);
 	} else {
-		ret = -EOPNOTSUPP;
+		ret = zl3073x_dpll_set_output_phase_adjust(zl3073x_dpll->zl3073x, zl3073x_pin->index, phase_adjust);
 	}
 
 	return ret;
