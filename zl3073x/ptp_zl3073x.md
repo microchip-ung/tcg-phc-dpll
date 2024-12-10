@@ -134,6 +134,18 @@ static int zl3073x_ptp_verify(struct ptp_clock_info *ptp, unsigned int pin, enum
 
 These functions manage DPLL configurations, including getting and setting DPLL modes, lock status, and phase offsets.
 
+## DPLL Input
+
+```c
+static int zl3073x_dpll_get_input_frequency(struct zl3073x *zl3073x, u8 refId, u64 *frequency);
+static int zl3073x_dpll_set_input_frequency(struct zl3073x *zl3073x, u8 refId, u64 frequency);
+
+```
+- Retrieve the input reference frequency of the current DPLL.
+- Set the input reference frequency of the current DPLL.
+
+
+
 ## DPLL Mode and Lock Status
 
 ```c
