@@ -156,11 +156,17 @@ static int zl3073x_dpll_ffo_get(struct zl3073x *zl3073x, u8 dpll_index, u8 ref_i
 static int zl3073x_dpll_phase_offset_get(struct zl3073x *zl3073x, struct zl3073x_dpll *zl3073x_dpll, struct zl3073x_pin *zl3073x_pin, s64 *phase_offset);
 static int zl3073x_dpll_get_input_phase_adjust(struct zl3073x *zl3073x, u8 refId, s32 *phaseAdj);
 static int zl3073x_dpll_set_input_phase_adjust(struct zl3073x *zl3073x, u8 refId, s32 phaseOffsetComp32);
+static int zl3073x_dpll_get_output_phase_adjust(struct zl3073x *zl3073x, u8 outputIndex, s32 *phaseAdj)
+static int zl3073x_dpll_set_output_phase_adjust(struct zl3073x *zl3073x, u8 outputIndex, s32 phaseOffsetComp32)
+
 
 ```
 - Retrieves the phase offset of a specified DPLL pin.
-- Retrieves the input phase adjustment value for a specified DPLL index. 
-- Sets the input phase adjustment value for a specified DPLL index.
+- Retrieves the input phase adjustment value for a specified DPLL. 
+- Sets the input phase adjustment value for a specified DPLL.
+- Retrieves the current output phase adjustment value of the specified DPLL.
+- Sets the output phase adjustment value of the specified DPLL.
+
 
 ## DPLL Pin Operations
 
