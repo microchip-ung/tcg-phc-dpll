@@ -4,6 +4,8 @@ This document provides a detailed description of the ZL3073X driver code. The ZL
 
 To enable Azurite Dpll Netlink, turn on CONFIG_DPLL. To enable Azurite PHC, turn on CONFIG_PTP_1588_CLOCK_ZL3073X.
  
+The code supports 2 board configurations; define CONFIG_MD_990_0011_REV_8 to support 
+rev8 board and CONFIG_MD_990_0011_REV_A for revA board.
 
 # Table of Contents
 1. [Data Structures](#data-structures)
@@ -141,14 +143,12 @@ static int zl3073x_dpll_raw_mode_get(struct zl3073x *zl3073x, int dpll_index);
 static int zl3073x_dpll_raw_lock_status_get(struct zl3073x *zl3073x, int dpll_index);
 static int zl3073x_dpll_map_raw_to_manager_mode(int raw_mode);
 static int zl3073x_dpll_map_raw_to_manager_lock_status(struct zl3073x *zl3073x, int dpll_index, u8 dpll_status);
-static int zl3073x_dpll_ffo_get(struct zl3073x *zl3073x, u8 dpll_index, u8 ref_index, s64 *ffo);
 
 ```
 - Retrieves the raw mode of a specified DPLL.
 - Retrieves the raw lock status of a specified DPLL.
 - Maps a raw DPLL mode to a manager mode.
 - Maps a raw DPLL lock status to a manager lock status.
-- Retrieve the current Frequency Offset (FFO) value from the specified DPLL.
 
 ## DPLL Phase Offset
 
@@ -177,12 +177,7 @@ static int zl3073x_dpll_pin_direction_get(const struct dpll_pin *pin, void *pin_
 static int zl3073x_dpll_pin_state_on_dpll_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, enum dpll_pin_state *state, struct netlink_ext_ack *extack);
 static int zl3073x_dpll_pin_prio_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, u32 *prio, struct netlink_ext_ack *extack);
 static int zl3073x_dpll_pin_prio_set(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, const u32 prio, struct netlink_ext_ack *extack);
-static int zl3073x_dpll_pin_phase_offset_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, s64 *phase_offset, struct netlink_ext_ack *extack);
-static int zl3073x_dpll_pin_phase_adjust_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, s32 *phase_adjust, struct netlink_ext_ack *extack);
 static int zl3073x_dpll_pin_phase_adjust_set(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, const s32 phase_adjust, struct netlink_ext_ack *extack);
-static int zl3073x_dpll_pin_ffo_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, s64 *ffo, struct netlink_ext_ack *extack);
-static int zl3073x_dpll_pin_esync_set(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, u64 freq, struct netlink_ext_ack *extack);
-static int zl3073x_dpll_pin_esync_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, struct dpll_pin_esync *esync, struct netlink_ext_ack *extack);
 static int zl3073x_dpll_lock_status_get(const struct dpll_device *dpll, void *dpll_priv, enum dpll_lock_status *status, enum dpll_lock_status_error *status_error, struct netlink_ext_ack *extack);
 static int zl3073x_dpll_mode_get(const struct dpll_device *dpll, void *dpll_priv, enum dpll_mode *mode, struct netlink_ext_ack *extack);
 tatic int zl3073x_dpll_pin_state_on_pin_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_pin *parent_pin, void *parent_pin_priv, enum dpll_pin_state *state,
@@ -194,15 +189,44 @@ tatic int zl3073x_dpll_pin_state_on_pin_get(const struct dpll_pin *pin, void *pi
 - Retrieves the state of a specified DPLL pin on a DPLL.
 - Retrieves the priority of a specified DPLL pin.
 - Sets the priority of a specified DPLL pin.
-- Retrieves the phase offset of a specified DPLL pin.
-- Retrieves the phase adjustment of a specified DPLL pin.
 - Sets the phase adjustment of a specified DPLL pin.
-- Retrieves the frequency offset of a specified DPLL pin.
-- Sets the external synchronization frequency of a specified DPLL pin.
-- Retrieves the external synchronization settings of a specified DPLL pin.
 - Retrieves the lock status of a specified DPLL.
 - Retrieves the mode of a specified DPLL.
 - Allowing software to monitor and respond to the state of various pins on the device.
+
+## DPLL Pin I/O Operations
+
+```c
+static int zl3073x_dpll_input_pin_frequency_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, u64 *frequency, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_output_pin_frequency_set(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, const u64 frequency, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_input_pin_phase_offset_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, s64 *phase_offset, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_input_pin_phase_adjust_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, s32 *phase_adjust, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_output_pin_phase_adjust_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, s32 *phase_adjust, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_output_pin_phase_adjust_set(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, const s32 phase_adjust, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_input_pin_ffo_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, s64 *ffo, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_input_pin_esync_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, struct dpll_pin_esync *esync, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_input_pin_esync_set(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, u64 freq, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_output_pin_esync_get(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, struct dpll_pin_esync *esync, struct netlink_ext_ack *extack);
+static int zl3073x_dpll_output_pin_esync_set(const struct dpll_pin *pin, void *pin_priv, const struct dpll_device *dpll, void *dpll_priv, u64 freq, struct netlink_ext_ack *extack);
+```
+- Retrieves the input frequency of a specifc pin.
+- Retrieves the output frequency of a specific pin.
+- Retrieves input phase offset of a specific pin.
+- Retrieves the input phase adjustment of a specific pin.
+- Retrieves the output phase adjustment of a specific pin.
+- Sets the output phase adjustment value of a specific pin.
+- Retrieves the input ffo of a specific pin.
+- Retrieves the esync settings at a specific input pin. 
+- Sets the esync setting of a specific input pin.
+- Retrieves the esync settings of a specified output pin.
+- Sets the esync settings of a specified output pin.
+
+
+
+
+
+
+
 
 
 # Appendix
