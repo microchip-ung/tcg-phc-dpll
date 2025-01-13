@@ -17,6 +17,20 @@ Depending on your board design, it is required to have either the `microchip-dpl
 
 Navigate to the corresponding directory and run the following commands:
 
+## KConfig setting
+
+1. CONFIG_PTP_1588_CLOCK_ZL3073X
+
+This Kconfig option enables support for Precision Time Protocol (PTP) using the ZL3073X clock. PTP is used to synchronize clocks across a network with high precision, often required in telecommunications and industrial automation.
+
+When this configuration is enabled (IS_ENABLED(CONFIG_PTP_1588_CLOCK_ZL3073X)), the driver will include specific logic to interface with and manage the ZL3073X clock device, ensuring accurate time synchronization.
+
+2. CONFIG_DPLL
+
+This Kconfig option enables support for Digital Phase-Locked Loop (DPLL Manager) functionality within the driver. DPLL systems are essential for clock generation and synchronization, providing stability and jitter reduction in time-sensitive applications.
+
+When this configuration is enabled (IS_ENABLED(CONFIG_DPLL)), the driver incorporates features to interact with DPLL components, allowing fine-grained control over frequency adjustments and synchronization to a reference clock.
+
 ### Build Command
 
 ```sh
