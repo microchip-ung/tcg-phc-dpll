@@ -442,7 +442,7 @@ enum zl3073x_output_freq_type_t output_freq_type_per_output[] = {
 	ZL3073X_SYNCE,	/* OUT3 - fixed to 156.25 Mhz */
 	ZL3073X_SYNCE,	/* OUT4 - fixed to 156.25 Mhz */
 	ZL3073X_SYNCE,	/* OUT5 - fixed to 156.25 Mhz */
-	ZL3073X_SYNCE,	/* OUT5 - fixed to 156.25 Mhz */
+	ZL3073X_SYNCE,	/* OUT6 - fixed to 156.25 Mhz */
 	ZL3073X_PTP,	/* OUT7 */
 	ZL3073X_PTP,	/* OUT8 */
 	ZL3073X_25MHz,	/* OUT9 - fixed to 25 MHz */
@@ -978,7 +978,7 @@ static int zl3073x_ptp_wait_sec_rollover(struct zl3073x_dpll *dpll)
 				break;
 		}
 
-		msleep(10);
+		usleep_range(10000, 10001); /* 10ms with minimal variance */
 	} while (true);
 
 out:
@@ -2766,16 +2766,16 @@ static int zl3073x_dpll_phase_offset_get(struct zl3073x *zl3073x, struct zl3073x
 	if (ret)
 		goto err;
 
-	ret = zl3073x_write(zl3073x, DPLL_MEAS_IDX_REG, &dpll_meas_idx, sizeof(dpll_meas_idx));
-	if (ret)
-		goto err;
-
 	ret = zl3073x_read(zl3073x, DPLL_MEAS_CTRL, &dpll_meas_ctrl, sizeof(dpll_meas_ctrl));
 	if (ret)
 		goto err;
 
 	dpll_meas_ctrl |= 0b1;
 	ret = zl3073x_write(zl3073x, DPLL_MEAS_CTRL, &dpll_meas_ctrl, sizeof(dpll_meas_ctrl));
+	if (ret)
+		goto err;
+
+	ret = zl3073x_write(zl3073x, DPLL_MEAS_IDX_REG, &dpll_meas_idx, sizeof(dpll_meas_idx));
 	if (ret)
 		goto err;
 
@@ -2811,7 +2811,7 @@ static int zl3073x_dpll_phase_offset_get(struct zl3073x *zl3073x, struct zl3073x
 
 	/* The register units are 0.01 ps, and the offset is returned in units of ps. */
 	phase_offset_ps = div_s64(phase_offset_reg_units, 100);
-
+	
 	/* The dpll being locked to a higher freq than the current ref the phase offset
 	 * is modded to the period of the signal the dpll is locked to.
 	 */
@@ -4168,8 +4168,8 @@ static void zl3073x_dpll_periodic_work(struct kthread_work *work)
 {
 	struct zl3073x *zl3073x = container_of(work, struct zl3073x, work.work);
 	struct zl3073x_dpll *zl3073x_dpll;
-	struct zl3073x_pin *zl3073x_pin;
 	enum dpll_lock_status lock_status;
+	struct zl3073x_pin *zl3073x_pin;
 	enum dpll_pin_state pin_state;
 	u8 raw_lock_status;
 	s64 phase_offset;
@@ -4321,6 +4321,7 @@ static const char *_zl3073x_firmware_get_line(const char *data,
 static int _zl3073x_firmware_parse_line(struct zl3073x *zl3073x,
 					const char *line)
 {
+	unsigned long parsed_value;
 	const char *tmp = line;
 	int err = 0;
 	u8 val = 0;
@@ -4343,11 +4344,19 @@ static int _zl3073x_firmware_parse_line(struct zl3073x *zl3073x,
 		tmp += ZL3073X_FW_COMMAND_SIZE;
 
 		tmp += ZL3073X_FW_WHITESPACES_SIZE;
-		addr = simple_strtoul(tmp, &endp, 16);
+		if (kstrtoul(tmp, 16, &parsed_value)) {
+			err = -EINVAL;
+			break;
+		}
+		addr = (u16)parsed_value;
 
 		tmp = endp;
 		tmp += ZL3073X_FW_WHITESPACES_SIZE;
-		val = simple_strtoul(tmp, &endp, 16);
+		if (kstrtoul(tmp, 16, &parsed_value)) {
+			err = -EINVAL;
+			break;
+		}
+		val = (u8)parsed_value;
 
 		err = zl3073x_write(zl3073x, addr, &val, 1);
 		break;
@@ -4362,7 +4371,11 @@ static int _zl3073x_firmware_parse_line(struct zl3073x *zl3073x,
 		tmp += ZL3073X_FW_COMMAND_SIZE;
 
 		tmp += ZL3073X_FW_WHITESPACES_SIZE;
-		delay = simple_strtoul(tmp, &endp, 10);
+		if (kstrtoul(tmp, 10, &parsed_value)) {
+			err = -EINVAL;
+			break;
+		}
+		delay = (u32)parsed_value;
 
 		usleep_range(delay / 2, delay);
 		break;
