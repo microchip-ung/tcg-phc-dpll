@@ -277,3 +277,21 @@ static void zl3073x_ptp_bytearray_to_timestamp(struct timespec64 *ts, u8 *sec, u
 ```
 - Converts a timespec64 timestamp to a byte array.
 - Converts a byte array to a timespec64 timestamp.
+
+
+
+## Output Frequency Assignment
+
+| OUTPUT | output_freq_type_per_output | Frequency                  | Frequency Range | eSYNC Freq           | eSYNC (OFF, ON)|
+|--------|-----------------------------|----------------------------|----------------|---------------------|----------------|
+| 0      | ZL3073X_PTP                 | output_freq_range_ptp      | 1, 25, 100, 1K, 10M, 25MHz | freq_range_esync | 0, 1          |
+| 1      | ZL3073X_10MHz_FIXED_EPPS    | output_freq_range_10MHz    | only 10 MHz    | freq_range_esync_on | 1              |
+| 2      | ZL3073X_10MHz_FIXED_EPPS    | output_freq_range_10MHz    | only 10MHz     | freq_range_esync_on | 1              |
+| 3      | ZL3073X_SYNCE               | output_freq_range_synce    | only 156.25Mhz | freq_range_esync_off| 0              |
+| 4      | ZL3073X_SYNCE               | output_freq_range_synce    | only 156.25Mhz | freq_range_esync_off| 0              |
+| 5      | ZL3073X_SYNCE               | output_freq_range_synce    | only 156.25Mhz | freq_range_esync_off| 0              |
+| 6      | ZL3073X_SYNCE               | output_freq_range_synce    | only 156.25Mhz | freq_range_esync_off| 0              |
+| 6      | ZL3073X_SYNCE_1Hz_FIXED     | output_freq_range_1Hz      | only 1Hz       | freq_range_esync_off| 0              |
+| 7      | ZL3073X_1Hz_FIXED           | output_freq_range_1Hz      | only 1Hz       | freq_range_esync_off| 0              |
+| 8      | ZL3073X_PTP                 | output_freq_range_ptp      | 1, 25, 100, 1K, 10M, 25MHz | freq_range_esync | 0, 1          |
+| 9      | ZL3073X_25MHz_FIXED         | output_freq_range_25MHz    | only 25Mhz     | freq_range_esync_off| 0              |

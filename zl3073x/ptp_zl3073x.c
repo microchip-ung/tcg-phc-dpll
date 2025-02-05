@@ -21,11 +21,11 @@
 #define DPLL_REF_MON_STATUS(index)			(0x102 + (index))
 #define DPLL_REF_MON_STATUS_QUALIFIED(val)	(!val)
 
-#define DPLL_MON_STATUS(index)			(0x110 + (index))
-#define DPLL_MON_STATUS_HO_READY_GET(val)	((val & GENMASK(2, 2)) >> 2)
-#define DPLL_LOCK_REFSEL_STATUS(index)		(0x130 + (index))
-#define DPLL_LOCK_REFSEL_LOCK_GET(val)		((val & GENMASK(6, 4)) >> 4)
-#define DPLL_LOCK_REFSEL_REF_GET(val)		((val & GENMASK(3, 0)))
+#define DPLL_MON_STATUS(index)					(0x110 + (index))
+#define DPLL_MON_STATUS_HO_READY_GET(val)		((val & GENMASK(2, 2)) >> 2)
+#define DPLL_LOCK_REFSEL_STATUS(index)			(0x130 + (index))
+#define DPLL_LOCK_REFSEL_LOCK_GET(val)			((val & GENMASK(6, 4)) >> 4)
+#define DPLL_LOCK_REFSEL_REF_GET(val)			((val & GENMASK(3, 0)))
 
 #define DPLL_REF_FREQ_ERR(ref)			(0x144 + (ref) * 0x4)
 
@@ -43,14 +43,14 @@
 
 #define DPLL_REF_PHASE_ERR(ref)			(0x220 + (ref) * 0x6)
 
-#define DPLL_MODE_REFSEL(index)			(0x284 + (index) * 0x4)
+#define DPLL_MODE_REFSEL(index)				(0x284 + (index) * 0x4)
 #define DPLL_MODE_REFSEL_MODE_GET(val)		(val & GENMASK(2, 0))
 #define DPLL_MODE_REFSEL_REF_GET(val)		((val & GENMASK(7, 4)) >> 4)
 
 #define DPLL_TIE_CTRL				0x2b0
 #define DPLL_TIE_CTRL_MASK			GENMASK(2, 0)
-#define DPLL_TIE_CTRL_MASK_REG			0x2b1
-#define DPLL_TIE_CTRL_OPERATION			4
+#define DPLL_TIE_CTRL_MASK_REG		0x2b1
+#define DPLL_TIE_CTRL_OPERATION		4
 #define DPLL_TIE_CTRL_SIZE			1
 
 #define DPLL_MEAS_CTRL				(0x2D0)
@@ -58,71 +58,71 @@
 #define DPLL_MEAS_IDX_REG			(0x2D1)
 #define DPLL_MEAS_IDX_MASK			GENMASK(2, 0)
 
-#define DPLL_SYNTH_CTRL(index)			(0x480 + (index))
+#define DPLL_SYNTH_CTRL(index)				(0x480 + (index))
 #define DPLL_SYNTH_CTRL_DPLL_SEL_GET(val)	((val & GENMASK(6, 4)) >> 4)
 
-#define DPLL_TOD_CTRL(index)			(0x2b8 + (index))
+#define DPLL_TOD_CTRL(index)		(0x2b8 + (index))
 #define DPLL_TOD_CTRL_SEM			BIT(4)
 
-#define DPLL_DF_OFFSET(index)			(0x300 + (index) * 0x20)
-#define DPLL_TIE_DATA(index)			(0x30c + (index) * 0x20)
+#define DPLL_DF_OFFSET(index)		(0x300 + (index) * 0x20)
+#define DPLL_TIE_DATA(index)		(0x30c + (index) * 0x20)
 #define DPLL_TOD_SEC(index)			(0x312 + (index) * 0x20)
 #define DPLL_TOD_SEC_SIZE			6
-#define DPLL_TOD_NSEC(index)			(0x318 + (index) * 0x20)
+#define DPLL_TOD_NSEC(index)		(0x318 + (index) * 0x20)
 #define DPLL_TOD_NSEC_SIZE			6
 
 #define DPLL_SYNTH_PHASE_SHIFT_CTRL		0x49e
 #define DPLL_SYNTH_PHASE_SHIFT_MASK		0x49f
-#define DPLL_SYNTH_PHASE_SHIFT_INTVL		0x4a0
+#define DPLL_SYNTH_PHASE_SHIFT_INTVL	0x4a0
 #define DPLL_SYNTH_PHASE_SHIFT_DATA		0x4a1
 
-#define DPLL_OUTPUT_CTRL(index)			(0x4a8 + (index))
-#define DPLL_OUTPUT_CTRL_SIZE			1
-#define DPLL_OUTPUT_CTRL_SYNTH_SEL_GET(val)	((val & GENMASK(6, 4)) >> 4)
-#define DPLL_OUTPUT_CTRL_STOP			BIT(1)
-#define DPLL_OUTPUT_CTRL_STOP_HIGH		BIT(2)
-#define DPLL_OUTPUT_CTRL_STOP_HZ		BIT(3)
+#define DPLL_OUTPUT_CTRL(index)					(0x4a8 + (index))
+#define DPLL_OUTPUT_CTRL_SIZE					1
+#define DPLL_OUTPUT_CTRL_SYNTH_SEL_GET(val)		((val & GENMASK(6, 4)) >> 4)
+#define DPLL_OUTPUT_CTRL_STOP					BIT(1)
+#define DPLL_OUTPUT_CTRL_STOP_HIGH				BIT(2)
+#define DPLL_OUTPUT_CTRL_STOP_HZ				BIT(3)
 
-#define DPLL_OUTPUT_PHASE_STEP_CTRL		0x4b8
-#define DPLL_OUTPUT_PHASE_STEP_CTRL_SIZE	1
-#define DPLL_OUTPUT_PHASE_STEP_CTRL_OP(cmd)	(cmd & GENMASK(1, 0))
-#define DPLL_OUTPUT_PAHSE_STEP_CTRL_OP_WRITE	3
-#define DPLL_OUTPUT_PHASE_STEP_CTRL_OP_MASK	GENMASK(1, 0)
-#define DPLL_OUTPUT_PHASE_STEP_CTRL_TOD_STEP	BIT(3)
-#define DPLL_OUTPUT_PHASE_STEP_CTRL_DPLL(index)	((index) << 4)
-#define DPLL_OUTPUT_PHASE_STEP_NUMBER		0x4b9
-#define DPLL_OUTPUT_PHASE_STEP_NUMBER_SIZE	1
-#define DPLL_OUTPUT_PHASE_STEP_MASK		0x4ba
-#define DPLL_OUTPUT_PHASE_STEP_MASK_SIZE	2
-#define DPLL_OUTPUT_PHASE_STEP_DATA		0x4bc
-#define DPLL_OUTPUT_PHASE_STEP_DATA_SIZE	4
+#define DPLL_OUTPUT_PHASE_STEP_CTRL					0x4b8
+#define DPLL_OUTPUT_PHASE_STEP_CTRL_SIZE			1
+#define DPLL_OUTPUT_PHASE_STEP_CTRL_OP(cmd)			(cmd & GENMASK(1, 0))
+#define DPLL_OUTPUT_PAHSE_STEP_CTRL_OP_WRITE		3
+#define DPLL_OUTPUT_PHASE_STEP_CTRL_OP_MASK			GENMASK(1, 0)
+#define DPLL_OUTPUT_PHASE_STEP_CTRL_TOD_STEP		BIT(3)
+#define DPLL_OUTPUT_PHASE_STEP_CTRL_DPLL(index)		((index) << 4)
+#define DPLL_OUTPUT_PHASE_STEP_NUMBER				0x4b9
+#define DPLL_OUTPUT_PHASE_STEP_NUMBER_SIZE			1
+#define DPLL_OUTPUT_PHASE_STEP_MASK					0x4ba
+#define DPLL_OUTPUT_PHASE_STEP_MASK_SIZE			2
+#define DPLL_OUTPUT_PHASE_STEP_DATA					0x4bc
+#define DPLL_OUTPUT_PHASE_STEP_DATA_SIZE			4
 
 #define DPLL_REF_MB_MASK								0x502
-#define DPLL_REF_MB_MASK_SIZE								2
+#define DPLL_REF_MB_MASK_SIZE							2
 #define DPLL_REF_MB_SEM									0x504
-#define DPLL_REF_MB_SEM_SIZE								1
+#define DPLL_REF_MB_SEM_SIZE							1
 #define DPLL_REF_MB_SEM_RD								BIT(1)
 #define DPLL_REF_MB_SEM_WR								BIT(0)
 #define DPLL_REF_FREQ_BASE_REG							0x505
-#define DPLL_REF_FREQ_BASE_REG_SIZE							2
+#define DPLL_REF_FREQ_BASE_REG_SIZE						2
 #define DPLL_REF_FREQ_MULT_REG							0x507
-#define DPLL_REF_FREQ_MULT_REG_SIZE							2
+#define DPLL_REF_FREQ_MULT_REG_SIZE						2
 #define DPLL_REF_FREQ_RATIO_M_REG						0x509
-#define DPLL_REF_FREQ_RATIO_M_REG_SIZE						2
+#define DPLL_REF_FREQ_RATIO_M_REG_SIZE					2
 #define DPLL_REF_FREQ_RATIO_N_REG						0x50B
-#define DPLL_REF_FREQ_RATIO_N_REG_SIZE						2
+#define DPLL_REF_FREQ_RATIO_N_REG_SIZE					2
 #define DPLL_REF_PHASE_OFFSET_COMPENSATION_REG			0x528
-#define DPLL_REF_PHASE_OFFSET_COMPENSATION_REG_SIZE			6
+#define DPLL_REF_PHASE_OFFSET_COMPENSATION_REG_SIZE		6
 
-#define DPLL_REF_SYNC_CTRL				0x52E
-#define DPLL_REF_SYNC_CTRL_MODE_GET(val)	(val & GENMASK(3, 0))
-#define DPLL_REF_ESYNC_DIV_REG			0x530
-#define DPLL_REF_ESYNC_DIV_SIZE			4
+#define DPLL_REF_SYNC_CTRL						0x52E
+#define DPLL_REF_SYNC_CTRL_MODE_GET(val)		(val & GENMASK(3, 0))
+#define DPLL_REF_ESYNC_DIV_REG					0x530
+#define DPLL_REF_ESYNC_DIV_SIZE					4
 
 #define DPLL_DPLL_MB_MASK			0x602
-#define DPLL_DPLL_MB_MASK_SIZE			2
+#define DPLL_DPLL_MB_MASK_SIZE		2
 #define DPLL_DPLL_MB_SEM			0x604
-#define DPLL_DPLL_MB_SEM_SIZE			1
+#define DPLL_DPLL_MB_SEM_SIZE		1
 #define DPLL_DPLL_MB_SEM_RD			BIT(1)
 #define DPLL_DPLL_MB_SEM_WR			BIT(0)
 
@@ -148,62 +148,64 @@
 #define DPLL_REF_INVALID			0xff
 
 #define DPLL_SYNTH_MB_MASK			0x682
-#define DPLL_SYNTH_MB_MASK_SIZE			2
+#define DPLL_SYNTH_MB_MASK_SIZE		2
 #define DPLL_SYNTH_MB_SEM			0x684
-#define DPLL_SYNTH_MB_SEM_SIZE			1
-#define DPLL_SYNTH_MB_SEM_RD			BIT(1)
-#define DPLL_SYNTH_FREQ_BASE			0x686
-#define DPLL_SYNTH_FREQ_BASE_SIZE		2
-#define DPLL_SYNTH_FREQ_MULT			0x688
-#define DPLL_SYNTH_FREQ_MULT_SIZE		4
+#define DPLL_SYNTH_MB_SEM_SIZE		1
+#define DPLL_SYNTH_MB_SEM_RD		BIT(1)
+#define DPLL_SYNTH_FREQ_BASE		0x686
+#define DPLL_SYNTH_FREQ_BASE_SIZE	2
+#define DPLL_SYNTH_FREQ_MULT		0x688
+#define DPLL_SYNTH_FREQ_MULT_SIZE	4
 #define DPLL_SYNTH_FREQ_M			0x68c
-#define DPLL_SYNTH_FREQ_M_SIZE			2
+#define DPLL_SYNTH_FREQ_M_SIZE		2
 #define DPLL_SYNTH_FREQ_N			0x68e
-#define DPLL_SYNTH_FREQ_N_SIZE			2
+#define DPLL_SYNTH_FREQ_N_SIZE		2
 
-#define DPLL_OUTPUT_MB_MASK			0x702
-#define DPLL_OUTPUT_MB_MASK_SIZE		2
-#define DPLL_OUTPUT_MB_SEM			0x704
-#define DPLL_OUTPUT_MB_SEM_SIZE			1
-#define DPLL_OUTPUT_MB_SEM_RD			BIT(1)
-#define DPLL_OUTPUT_MB_SEM_WR			BIT(0)
-#define DPLL_OUTPUT_MODE			0x705
-#define DPLL_OUTPUT_MODE_SIZE			1
-#define DPLL_OUTPUT_MODE_SIGNAL_FORMAT(val)	((val) << 4)
-#define DPLL_OUTPUT_MODE_SIGNAL_FORMAT_GET(val) ((val & GENMASK(7, 4)) >> 4)
-#define DPLL_OUTPUT_MODE_SIGNAL_FORMAT_MASK	GENMASK(7, 4)
-#define DPLL_OUTPUT_MODE_CLOCK_TYPE_GET(val) (val & GENMASK(2, 0))
-#define DPLL_OUTPUT_DIV				0x70c
-#define DPLL_OUTPUT_DIV_SIZE			4
-#define DPLL_OUTPUT_WIDTH			0x710
-#define DPLL_OUTPUT_WIDTH_SIZE			4
-#define DPLL_OUTPUT_ESYNC_DIV_REG			0x714
-#define DPLL_OUTPUT_ESYNC_DIV_SIZE			4
-#define DPLL_OUTPUT_ESYNC_PULSE_WIDTH_REG	0x718
-#define DPLL_OUTPUT_ESYNC_PULSE_WIDTH_SIZE	4
-#define DPLL_OUTPUTP_GREATER_THAN_OUTPUTN(outp, outn) ((outp) > (outn))
-#define DPLL_OUTPUT_PHASE_COMPENSATION_REG			0x720
+#define DPLL_OUTPUT_MB_MASK								0x702
+#define DPLL_OUTPUT_MB_MASK_SIZE						2
+#define DPLL_OUTPUT_MB_SEM								0x704
+#define DPLL_OUTPUT_MB_SEM_SIZE							1
+#define DPLL_OUTPUT_MB_SEM_RD							BIT(1)
+#define DPLL_OUTPUT_MB_SEM_WR							BIT(0)
+#define DPLL_OUTPUT_MODE								0x705
+#define DPLL_OUTPUT_MODE_SIZE							1
+#define DPLL_OUTPUT_MODE_SIGNAL_FORMAT(val)				((val) << 4)
+#define DPLL_OUTPUT_MODE_SIGNAL_FORMAT_GET(val)			((val & GENMASK(7, 4)) >> 4)
+#define DPLL_OUTPUT_MODE_SIGNAL_FORMAT_MASK				GENMASK(7, 4)
+#define DPLL_OUTPUT_MODE_CLOCK_TYPE_GET(val)			(val & GENMASK(2, 0))
+#define DPLL_OUTPUT_DIV									0x70c
+#define DPLL_OUTPUT_DIV_SIZE							4
+#define DPLL_OUTPUT_WIDTH								0x710
+#define DPLL_OUTPUT_WIDTH_SIZE							4
+#define DPLL_OUTPUT_ESYNC_DIV_REG						0x714
+#define DPLL_OUTPUT_ESYNC_DIV_SIZE						4
+#define DPLL_OUTPUT_ESYNC_PULSE_WIDTH_REG				0x718
+#define DPLL_OUTPUT_ESYNC_PULSE_WIDTH_SIZE				4
+#define DPLL_OUTPUTP_GREATER_THAN_OUTPUTN(outp, outn)	((outp) > (outn))
+#define DPLL_OUTPUT_PHASE_COMPENSATION_REG				0x720
 #define DPLL_OUTPUT_PHASE_COMPENSATION_REG_SIZE			4
-#define DPLL_OUTPUT_GPO_EN			0x724
-#define DPLL_OUTPUT_GPO_EN_SIZE			1
+#define DPLL_OUTPUT_GPO_EN								0x724
+#define DPLL_OUTPUT_GPO_EN_SIZE							1
 
 #define ZL3073X_1PPM_FORMAT		281474976
 
-#define ZL3073X_MAX_SYNTH		5
+#define ZL3073X_MAX_SYNTH				5
 #define ZL3073X_MAX_INPUT_PINS			10
-#define ZL3073X_MAX_OUTPUT_PINS		20
+#define ZL3073X_MAX_OUTPUT_PINS			20
 #define ZL3073X_MAX_OUTPUT_PIN_PAIRS	(ZL3073X_MAX_OUTPUT_PINS / 2)
-#define ZL3073X_MAX_DPLLS		2
-#define ZL3073X_MAX_PINS		(ZL3073X_MAX_INPUT_PINS + ZL3073X_MAX_OUTPUT_PINS)
+#define ZL3073X_MAX_DPLLS				2
+#define ZL3073X_MAX_PINS				(ZL3073X_MAX_INPUT_PINS + ZL3073X_MAX_OUTPUT_PINS)
 
 #define ZL3073X_PTP_CLOCK_DPLL	0
 
 #define READ_SLEEP_US			10
 #define READ_TIMEOUT_US			100000
 
-#define ZL3073X_FW_FILENAME		"zl3073x.mfg"
-#define ZL3073X_FW_WHITESPACES_SIZE	3
-#define ZL3073X_FW_COMMAND_SIZE		1
+#if IS_ENABLED(CONFIG_ZL3073X_MFG_FILE_AVAILABLE)
+#define ZL3073X_FW_FILENAME				"zl3073x.mfg"
+#define ZL3073X_FW_WHITESPACES_SIZE		3
+#define ZL3073X_FW_COMMAND_SIZE			1
+#endif
 
 #define ZL3073X_P_PIN(pin)		((pin) % 2 == 0)
 #define ZL3073X_N_PIN(pin)		(!ZL3073X_P_PIN(pin))
@@ -273,8 +275,11 @@ enum zl3073x_pin_type {
 
 enum zl3073x_output_freq_type_t {
 	ZL3073X_SYNCE,
+	ZL3073X_SYNCE_1Hz_FIXED,
 	ZL3073X_PTP,
-	ZL3073X_25MHz,
+	ZL3073X_25MHz_FIXED,
+	ZL3073X_10MHz_FIXED_EPPS,
+	ZL3073X_1Hz_FIXED,
 };
 
 enum zl3073x_pin_input_frequency {
@@ -299,7 +304,7 @@ struct dpll_pin_phase_adjust_range phase_range = {
 };
 
 /* Shared structures between REV_8 and REV_A */
-#if IS_ENABLED(CONFIG_MD_990_0011_REV_8) || IS_ENABLED(CONFIG_MD_990_0011_REV_A)
+#if IS_ENABLED(CONFIG_MD_990_0011_REV_0x00080000) || IS_ENABLED(CONFIG_MD_990_0011_REV_0x000A0000)
 enum dpll_type zl3073x_dpll_type[ZL3073X_MAX_DPLLS] = {
 	DPLL_TYPE_EEC,
 	DPLL_TYPE_PPS
@@ -331,9 +336,25 @@ struct dpll_pin_frequency output_freq_range_25MHz[] = {
 	{ .min = 25000000, .max = 25000000, },
 };
 
+struct dpll_pin_frequency output_freq_range_10MHz[] = {
+	{ .min = 10000000, .max = 10000000, },
+};
+
+struct dpll_pin_frequency output_freq_range_1Hz[] = {
+	{ .min = 1, .max = 1, },
+};
+
 struct dpll_pin_frequency freq_range_esync[] = {
 	{ .min = 0, .max = 0, },
 	{ .min = 1, .max = 1, },
+};
+
+struct dpll_pin_frequency freq_range_esync_on[] = {
+	{ .min = 1, .max = 1, },
+};
+
+struct dpll_pin_frequency freq_range_esync_off[] = {
+	{ .min = 0, .max = 0, },
 };
 
 enum dpll_pin_type input_dpll_pin_types[] = {
@@ -359,7 +380,7 @@ const char *input_pin_names[] = {
 #endif
 
 /* Structures and configs specific to REV_8 or REV_A */
-#if IS_ENABLED(CONFIG_MD_990_0011_REV_8)
+#if IS_ENABLED(CONFIG_MD_990_0011_REV_0x00080000)
 enum zl3073x_pin_type zl3073x_output_pin_type[ZL3073X_MAX_OUTPUT_PIN_PAIRS] = {
 	ZL3073X_SINGLE_ENDED_IN_PHASE,	/* OUT0 */
 	ZL3073X_SINGLE_ENDED_IN_PHASE,	/* OUT1 */
@@ -374,16 +395,16 @@ enum zl3073x_pin_type zl3073x_output_pin_type[ZL3073X_MAX_OUTPUT_PIN_PAIRS] = {
 };
 
 enum zl3073x_output_freq_type_t output_freq_type_per_output[] = {
-	ZL3073X_PTP,	/* OUT0 */
-	ZL3073X_PTP,	/* OUT1 */
-	ZL3073X_PTP,	/* OUT2 */
-	ZL3073X_SYNCE,	/* OUT3 - fixed to 156.25 Mhz */
-	ZL3073X_SYNCE,	/* OUT4 - fixed to 156.25 Mhz */
-	ZL3073X_SYNCE,	/* OUT5 - fixed to 156.25 Mhz */
-	ZL3073X_PTP,	/* OUT6 */
-	ZL3073X_PTP,	/* OUT7 */
-	ZL3073X_PTP,	/* OUT8 */
-	ZL3073X_25MHz,	/* OUT9 - fixed to 25 MHz */
+	ZL3073X_PTP,			/* OUT0 */
+	ZL3073X_PTP,			/* OUT1 */
+	ZL3073X_PTP,			/* OUT2 */
+	ZL3073X_SYNCE,			/* OUT3 - fixed to 156.25 Mhz */
+	ZL3073X_SYNCE,			/* OUT4 - fixed to 156.25 Mhz */
+	ZL3073X_SYNCE,			/* OUT5 - fixed to 156.25 Mhz */
+	ZL3073X_PTP,			/* OUT6 */
+	ZL3073X_PTP,			/* OUT7 */
+	ZL3073X_PTP,			/* OUT8 */
+	ZL3073X_25MHz_FIXED,	/* OUT9 - fixed to 25 MHz */
 };
 
 enum dpll_pin_type output_dpll_pin_types[] = {
@@ -421,7 +442,7 @@ const char *output_pin_names[] = {
 	"1PPS_OUT1",	"1PPS_OUT0",
 	"SYNC_25M_P",	"SYNC_25M_N",
 };
-#elif IS_ENABLED(CONFIG_MD_990_0011_REV_A)
+#elif IS_ENABLED(CONFIG_MD_990_0011_REV_0x000A0000)
 enum zl3073x_pin_type zl3073x_output_pin_type[ZL3073X_MAX_OUTPUT_PIN_PAIRS] = {
 	ZL3073X_SINGLE_ENDED_IN_PHASE,	/* OUT0 */
 	ZL3073X_SINGLE_ENDED_IN_PHASE,	/* OUT1 */
@@ -436,16 +457,16 @@ enum zl3073x_pin_type zl3073x_output_pin_type[ZL3073X_MAX_OUTPUT_PIN_PAIRS] = {
 };
 
 enum zl3073x_output_freq_type_t output_freq_type_per_output[] = {
-	ZL3073X_PTP,	/* OUT0 */
-	ZL3073X_PTP,	/* OUT1 */
-	ZL3073X_PTP,	/* OUT2 */
-	ZL3073X_SYNCE,	/* OUT3 - fixed to 156.25 Mhz */
-	ZL3073X_SYNCE,	/* OUT4 - fixed to 156.25 Mhz */
-	ZL3073X_SYNCE,	/* OUT5 - fixed to 156.25 Mhz */
-	ZL3073X_SYNCE,	/* OUT6 - fixed to 156.25 Mhz */
-	ZL3073X_PTP,	/* OUT7 */
-	ZL3073X_PTP,	/* OUT8 */
-	ZL3073X_25MHz,	/* OUT9 - fixed to 25 MHz */
+	ZL3073X_PTP,				/* OUT0 */
+	ZL3073X_10MHz_FIXED_EPPS,	/* OUT1 - fixed to 10 MHz*/
+	ZL3073X_10MHz_FIXED_EPPS,	/* OUT2 - fixed to 10 MHz*/
+	ZL3073X_SYNCE,				/* OUT3 - fixed to 156.25 MHz */
+	ZL3073X_SYNCE,				/* OUT4 - fixed to 156.25 MHz */
+	ZL3073X_SYNCE,				/* OUT5 - fixed to 156.25 MHz */
+	ZL3073X_SYNCE_1Hz_FIXED,	/* OUT6 - 6P fixed to 1Hz, 6N blocked to GPO*/
+	ZL3073X_1Hz_FIXED,			/* OUT7 - fixed to 1 Hz*/
+	ZL3073X_PTP,				/* OUT8 */
+	ZL3073X_25MHz_FIXED,		/* OUT9 - fixed to 25 MHz */
 };
 
 enum dpll_pin_type output_dpll_pin_types[] = {
@@ -473,8 +494,8 @@ enum dpll_pin_type output_dpll_pin_types[] = {
 
 const char *output_pin_names[] = {
 	"SMA0_OUT",		"1PPS_OUT4",
-	"OUT1P",		"AIC_SCLK",
-	"AIC_CLK2",		"SMA2_OUT",
+	"OUT1P_U_FL",	"AIC_SCLK",
+	"AIC_SCLK2",	"SMA2_OUT",
 	"SYNC_CLK1_P",	"SYNC_CLK1_N",
 	"SYNC_CLK0_P",	"SYNC_CLK0_N",
 	"SYNC_CLK2_P",	"SYNC_CLK2_N",
@@ -486,7 +507,7 @@ const char *output_pin_names[] = {
 #endif
 
 /* Default structures and configs for when no specific board is enabled */
-#if !IS_ENABLED(CONFIG_MD_990_0011_REV_8) && !IS_ENABLED(CONFIG_MD_990_0011_REV_A)
+#if !IS_ENABLED(CONFIG_MD_990_0011_REV_0x00080000) && !IS_ENABLED(CONFIG_MD_990_0011_REV_0x000A0000)
 enum dpll_type zl3073x_dpll_type[ZL3073X_MAX_DPLLS] = {
 	DPLL_TYPE_EEC,
 	DPLL_TYPE_PPS
@@ -518,9 +539,25 @@ struct dpll_pin_frequency output_freq_range_25MHz[] = {
 	{ .min = 25000000, .max = 25000000, },
 };
 
+struct dpll_pin_frequency output_freq_range_10MHz[] = {
+	{ .min = 10000000, .max = 10000000, },
+};
+
+struct dpll_pin_frequency output_freq_range_1Hz[] = {
+	{ .min = 1, .max = 1, },
+};
+
 struct dpll_pin_frequency freq_range_esync[] = {
 	{ .min = 0, .max = 0, },
 	{ .min = 1, .max = 1, },
+};
+
+struct dpll_pin_frequency freq_range_esync_on[] = {
+	{ .min = 1, .max = 1, },
+};
+
+struct dpll_pin_frequency freq_range_esync_off[] = {
+	{ .min = 0, .max = 0, },
 };
 
 enum dpll_pin_type input_dpll_pin_types[] = {
@@ -674,11 +711,17 @@ static u8 *zl3073x_swap(u8 *swap, u16 count)
 	return swap;
 }
 
+/*	The data retrieved from the buffer will be in big-endian format, as the device (zl3073x)
+ *	operates in big-endian format while the host system is considered to be little-endian.
+ */
 static int zl3073x_read(struct zl3073x *zl3073x, u16 regaddr, u8 *buf, u16 count)
 {
 	return regmap_bulk_read(zl3073x->regmap, regaddr, buf, count);
 }
 
+/*	The buffer data must be in little-endian format (matching host endianness) before writing.
+ *	The function zl3073x_swap converts the buffer to big-endian format.
+ */
 static int zl3073x_write(struct zl3073x *zl3073x, u16 regaddr, u8 *buf, u16 count)
 {
 	return regmap_bulk_write(zl3073x->regmap, regaddr, zl3073x_swap(buf, count), count);
@@ -2501,11 +2544,13 @@ static int zl3073x_dpll_set_output_frequency(struct zl3073x *zl3073x, u8 outputI
 	if (ret)
 		return ret;
 
-	for (int i = 0; i < zl3073x->pin[outputIndex].pin_properties.freq_supported_num; i++) {
-		if (zl3073x->pin[outputIndex].pin_properties.freq_supported[i].min <= frequency &&
-						zl3073x->pin[outputIndex].pin_properties.freq_supported[i].max >= frequency) {
-			isValidFreq = 1;
-			break;
+	if (zl3073x->pin[outputIndex].pin_properties.type != DPLL_PIN_TYPE_INT_OSCILLATOR) {
+		for (int i = 0; i < zl3073x->pin[outputIndex].pin_properties.freq_supported_num; i++) {
+			if (zl3073x->pin[outputIndex].pin_properties.freq_supported[i].min <= frequency &&
+							zl3073x->pin[outputIndex].pin_properties.freq_supported[i].max >= frequency) {
+				isValidFreq = 1;
+				break;
+			}
 		}
 	}
 
@@ -2811,7 +2856,7 @@ static int zl3073x_dpll_phase_offset_get(struct zl3073x *zl3073x, struct zl3073x
 
 	/* The register units are 0.01 ps, and the offset is returned in units of ps. */
 	phase_offset_ps = div_s64(phase_offset_reg_units, 100);
-	
+
 	/* The dpll being locked to a higher freq than the current ref the phase offset
 	 * is modded to the period of the signal the dpll is locked to.
 	 */
@@ -3053,6 +3098,7 @@ out:
 static int zl3073x_dpll_output_esync_get(struct zl3073x *zl3073x, struct zl3073x_dpll *zl3073x_dpll,
 			int pin_index, struct dpll_pin_esync *esync)
 {
+	enum zl3073x_output_freq_type_t freq_type = output_freq_type_per_output[pin_index / 2];
 	struct dpll_pin_esync output_esync;
 	u32 half_pulse_width;
 	u32 esync_pulse_width;
@@ -3195,13 +3241,31 @@ out:
 
 	if (esync_enabled) {
 		output_esync.freq = esync_freq;
-		output_esync.range = freq_range_esync;
-		output_esync.range_num = ARRAY_SIZE(freq_range_esync);
+
+		if (freq_type == ZL3073X_PTP) {
+			output_esync.range = freq_range_esync;
+			output_esync.range_num = ARRAY_SIZE(freq_range_esync);
+		} else if (freq_type == ZL3073X_10MHz_FIXED_EPPS) {
+			output_esync.range = freq_range_esync_on;
+			output_esync.range_num = ARRAY_SIZE(freq_range_esync_on);
+		} else {
+			output_esync.range = freq_range_esync_off;
+			output_esync.range_num = ARRAY_SIZE(freq_range_esync_off);
+		}
+
 		output_esync.pulse = esync_pulse;
 	} else {
 		output_esync.freq = 0;
-		output_esync.range = freq_range_esync;
-		output_esync.range_num = ARRAY_SIZE(freq_range_esync);
+		if (freq_type == ZL3073X_PTP) {
+			output_esync.range = freq_range_esync;
+			output_esync.range_num = ARRAY_SIZE(freq_range_esync);
+		} else if (freq_type == ZL3073X_10MHz_FIXED_EPPS) {
+			output_esync.range = freq_range_esync_on;
+			output_esync.range_num = ARRAY_SIZE(freq_range_esync_on);
+		} else {
+			output_esync.range = freq_range_esync_off;
+			output_esync.range_num = ARRAY_SIZE(freq_range_esync_off);
+		}
 		output_esync.pulse = 50;
 	}
 
@@ -3212,6 +3276,7 @@ out:
 static int zl3073x_dpll_output_esync_set(struct zl3073x *zl3073x, struct zl3073x_dpll *zl3073x_dpll,
 			int pin_index, u64 freq)
 {
+	enum zl3073x_output_freq_type_t freq_type = output_freq_type_per_output[pin_index / 2];
 	enum zl3073x_output_mode_clock_type_t clock_type;
 	u8 valid_input_freq = 0;
 	u8 signal_format;
@@ -3227,9 +3292,21 @@ static int zl3073x_dpll_output_esync_set(struct zl3073x *zl3073x, struct zl3073x
 
 	mutex_lock(zl3073x->lock);
 
-	for (int i = 0; i < ARRAY_SIZE(freq_range_esync); i++) {
-		if (freq_range_esync[i].min <= freq && freq_range_esync[i].max >= freq)
-			valid_input_freq = 1;
+	if (freq_type == ZL3073X_PTP) {
+		for (int i = 0; i < ARRAY_SIZE(freq_range_esync); i++) {
+			if (freq_range_esync[i].min <= freq && freq_range_esync[i].max >= freq)
+				valid_input_freq = 1;
+		}
+	} else if (freq_type == ZL3073X_10MHz_FIXED_EPPS) {
+		for (int i = 0; i < ARRAY_SIZE(freq_range_esync_on); i++) {
+			if (freq_range_esync_on[i].min <= freq && freq_range_esync_on[i].max >= freq)
+				valid_input_freq = 1;
+		}
+	} else {
+		for (int i = 0; i < ARRAY_SIZE(freq_range_esync_off); i++) {
+			if (freq_range_esync_off[i].min <= freq && freq_range_esync_off[i].max >= freq)
+				valid_input_freq = 1;
+		}
 	}
 
 	if (valid_input_freq == 0) {
@@ -3964,9 +4041,15 @@ static struct dpll_pin_properties zl3073x_dpll_output_pin_properties_get(int pin
 	} else if (freq_type == ZL3073X_PTP) {
 		output_pin_prop.freq_supported = output_freq_range_ptp;
 		output_pin_prop.freq_supported_num = ARRAY_SIZE(output_freq_range_ptp);
-	} else if (freq_type == ZL3073X_25MHz) {
+	} else if (freq_type == ZL3073X_25MHz_FIXED) {
 		output_pin_prop.freq_supported = output_freq_range_25MHz;
 		output_pin_prop.freq_supported_num = ARRAY_SIZE(output_freq_range_25MHz);
+	} else if (freq_type == ZL3073X_10MHz_FIXED_EPPS) {
+		output_pin_prop.freq_supported = output_freq_range_10MHz;
+		output_pin_prop.freq_supported_num = ARRAY_SIZE(output_freq_range_10MHz);
+	} else if (freq_type == ZL3073X_1Hz_FIXED || freq_type == ZL3073X_SYNCE_1Hz_FIXED) {
+		output_pin_prop.freq_supported = output_freq_range_1Hz;
+		output_pin_prop.freq_supported_num = ARRAY_SIZE(output_freq_range_1Hz);
 	}
 	output_pin_prop.phase_range = phase_range;
 
@@ -4305,6 +4388,7 @@ static int zl3073x_ptp_init(struct zl3073x *zl3073x, u8 index)
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_ZL3073X_MFG_FILE_AVAILABLE)
 static const char *_zl3073x_firmware_get_line(const char *data,
 					      size_t line_number)
 {
@@ -4419,6 +4503,7 @@ out:
 	release_firmware(fw);
 	return err;
 }
+#endif
 
 static int zl3073x_probe(struct platform_device *pdev)
 {
@@ -4435,7 +4520,9 @@ static int zl3073x_probe(struct platform_device *pdev)
 	zl3073x->lock = &ddata->lock;
 	zl3073x->regmap = ddata->regmap;
 
+#if IS_ENABLED(CONFIG_ZL3073X_MFG_FILE_AVAILABLE)
 	zl3073x_firmware_load(zl3073x);
+#endif
 
 #if IS_ENABLED(CONFIG_PTP_1588_CLOCK_ZL3073X)
 	err = zl3073x_ptp_init(zl3073x, ZL3073X_PTP_CLOCK_DPLL);
